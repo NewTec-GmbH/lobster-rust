@@ -3,7 +3,7 @@
 use ra_ap_syntax::{SyntaxElement, SyntaxNode, SyntaxToken, NodeOrToken, SyntaxKind};
 use regex::Regex;
 
-use crate::{traceable_node::RustTraceableNode, NodeLocation, syntax_extensions::Searchable};
+use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation};
 
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
@@ -76,6 +76,14 @@ struct WhitespaceData {
     last_linebrk: usize
 }
 
+impl WhitespaceData {
+    fn calculate_element_location(&self, element: &SyntaxElement) -> (usize, usize) {
+        let element_start = usize::from(element.text_range().start());
+        let col = element_start - self.last_linebrk;
+        (self.current_line, col)
+    }
+}
+
 pub(crate) struct RustVisitor {
     pub(crate) filename: String,
     pub(crate) vdata: VisitorData,
@@ -85,57 +93,73 @@ impl RustVisitor {
     pub(crate) fn new(filename: String) -> Self {
         RustVisitor {
             filename,
-            vdata: VisitorData { 
+            vdata: VisitorData {
                 whitespace_data: WhitespaceData { current_line: 1, last_linebrk: 0 },
                 node_stack: Vec::new()
             }
          }
     }
 
+    fn get_enclosing_scope(&self) -> Option<&ImplementationData> {
+        // Get reference to the implementation data of the latest Impl node.
+        self.vdata.node_stack.iter().rev()
+        .filter(|n| NodeKind::Impl == n.kind).next()
+        .map(|rtn| rtn.impl_data.as_ref()).flatten()
+    }
 
     // Node visit functions
 
     fn enter_source(&mut self, source_node: &SyntaxNode) {
-        let mut root_node = RustTraceableNode::from_node(source_node).unwrap();
+        let mut root_node = RustTraceableNode::from_node(source_node, String::new()).unwrap();
         root_node.name = self.filename.clone();
         self.vdata.node_stack.push(root_node);
     }
-    
+
     fn enter_fn(&mut self, fn_node: &SyntaxNode) {
-        let ws_data = &self.vdata.whitespace_data;
-    
-        let mut col = 0usize;
+        // Calculate position in file.
+        let (line, col): (usize, usize);
         if let Some(fn_kw_token) = fn_node.get_tokens_kind(SyntaxKind::FN_KW).pop() {
-            col = usize::from(fn_kw_token.text_range().start()) - ws_data.last_linebrk;
+            (line, col) = self.vdata.whitespace_data.calculate_element_location(&NodeOrToken::Token(fn_kw_token));
+        } else {
+            (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
-        let filename = self.vdata.get_root().unwrap().name.clone();
-        let location = NodeLocation::from(filename, Some(ws_data.current_line), Some(col));
-    
-        let node = RustTraceableNode::from_node_with_location(fn_node, location).unwrap_or_else(|| panic!("Could not parse fn at line {:#?}.", ws_data.current_line));
+        // Get filename as prefix
+        let mut prefix = self.vdata.get_root().unwrap().name.clone();
+        let location = NodeLocation::from(prefix.clone(), Some(line), Some(col));
+
+        // Check for enclosing impl
+        if let Some(impl_data) = self.get_enclosing_scope() {
+            prefix += ".";
+            prefix += &impl_data.target;
+        }
+
+        // Parse node.
+        let node = RustTraceableNode::from_node_with_location(fn_node, location, prefix).unwrap_or_else(|| panic!("Could not parse fn at line {:#?}.", self.vdata.whitespace_data.current_line));
         self.vdata.node_stack.push(node);
     }
-    
+
     fn exit_fn(&mut self, _: &SyntaxNode) {
         // Pop function node from stack and add it to its parent node
         let closed_fn = self.vdata.node_stack.pop().unwrap();
-    
+
         if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
             enclosing_node.append_child(closed_fn);
         }
     }
 
     fn enter_struct(&mut self, struct_node: &SyntaxNode) {
-        let ws_data = &self.vdata.whitespace_data;
-
-        let mut col = 0usize;
+        // Calculate position in file.
+        let (line, col): (usize, usize);
         if let Some(struct_kw_token) = struct_node.get_tokens_kind(SyntaxKind::STRUCT_KW).pop() {
-            col = usize::from(struct_kw_token.text_range().start()) - ws_data.last_linebrk;
+            (line, col) = self.vdata.whitespace_data.calculate_element_location(&NodeOrToken::Token(struct_kw_token));
+        } else {
+            (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
         let filename = self.vdata.get_root().unwrap().name.clone();
+        let location = NodeLocation::from(filename.clone(), Some(line), Some(col));
 
-        let location = NodeLocation::from(filename, Some(ws_data.current_line), Some(col));
-    
-        let node = RustTraceableNode::from_node_with_location(struct_node, location).unwrap_or_else(|| panic!("Could not parse struct at line {:#?}.", ws_data.current_line));
+        // Parse node.
+        let node = RustTraceableNode::from_node_with_location(struct_node, location, filename).unwrap_or_else(|| panic!("Could not parse struct at line {:#?}.", self.vdata.whitespace_data.current_line));
         self.vdata.node_stack.push(node);
     }
 
@@ -149,7 +173,7 @@ impl RustVisitor {
     }
 
     fn enter_impl(&mut self, impl_node: &SyntaxNode) {
-        let node = RustTraceableNode::from_node(impl_node).unwrap();
+        let node = RustTraceableNode::from_node(impl_node, String::new()).unwrap();
         self.vdata.node_stack.push(node);
     }
 
@@ -161,25 +185,25 @@ impl RustVisitor {
     }
 
     // Token visit functions
-    
+
     fn visit_whitespace(&mut self, whitespace_token: &SyntaxToken) {
         // Update whitespace data to hold current line and charpos of last linebreak
         let ws_data = &mut self.vdata.whitespace_data;
-    
+
         let linebreaks = whitespace_token.text().chars().filter(|c| '\n' == *c).count();
         ws_data.current_line += linebreaks;
-    
+
         if let Some((lbpos, _)) = whitespace_token.text().char_indices().filter(|(_, c)| '\n' == *c).last() {
             ws_data.last_linebrk = usize::from(whitespace_token.text_range().start()) + lbpos;
         }
     }
-    
+
     fn visit_comment(&mut self, comment_token: &SyntaxToken) {
         // Parse comment for lobster trace or justification annotations
         if let Some(cnode) = self.vdata.node_stack.last_mut() {
             let trace_re = Regex::new(r"///?.*lobster-trace: (?<ref>[A-Za-z0-9\.]+).*").unwrap();
             let just_re = Regex::new(r"///?.*lobster-exclude: (?<just>[[:alnum:]]+).*").unwrap();
-        
+
             if let Some(cap) =  trace_re.captures(comment_token.text()) {
                 if let Some(refmatch) = cap.name("ref") {
                     let mut refstring = refmatch.as_str().to_string();

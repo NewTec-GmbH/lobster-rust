@@ -9,7 +9,7 @@ use crate::{NodeLocation, FileReference, syntax_extensions::Searchable};
 
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum NodeKind {
+pub(crate) enum NodeKind {
     Module,
     Struct,
     Enum,
@@ -19,7 +19,7 @@ enum NodeKind {
 }
 
 impl NodeKind {
-    fn to_string(&self) -> &str{
+    pub(crate) fn to_string(&self) -> &str{
         match self {
             NodeKind::Module => "Module",
             NodeKind::Struct => "Struct",
@@ -35,12 +35,12 @@ impl NodeKind {
 pub(crate) struct RustTraceableNode {
     // lobster-trace: HOLD.refs
     pub(crate) name: String,
-    kind: NodeKind,
+    pub(crate)kind: NodeKind,
     pub(crate) location: NodeLocation,
     pub(crate) children: Vec<RustTraceableNode>,
     pub(crate) just: Vec<String>,
     pub(crate) refs: Vec<String>,
-    impl_data: Option<ImplementationData>
+    pub(crate) impl_data: Option<ImplementationData>
 }
 
 impl RustTraceableNode {
@@ -56,7 +56,7 @@ impl RustTraceableNode {
         }
     }
 
-    pub(crate) fn from_node(node: &SyntaxNode) -> Option<Self> {
+    pub(crate) fn from_node(node: &SyntaxNode, prefix: String) -> Option<Self> {
         let location = FileReference {
             filename: "main.rs".to_string(),
             line: None,
@@ -68,7 +68,7 @@ impl RustTraceableNode {
             match node_kind {
                 NodeKind::Function => {
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
-                    let name = name_node.text().to_string();
+                    let name =  prefix + "." + &name_node.text().to_string();
                     Some(RustTraceableNode::new(name, NodeLocation::File(location), node_kind))
                 },
                 NodeKind::Module => {
@@ -76,7 +76,7 @@ impl RustTraceableNode {
                 },
                 NodeKind::Struct => {
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
-                    let name = name_node.text().to_string();
+                    let name = prefix+ "."  + &name_node.text().to_string();
                     Some(RustTraceableNode::new(name, NodeLocation::File(location), node_kind))
                 },
                 NodeKind::Impl => {
@@ -118,8 +118,8 @@ impl RustTraceableNode {
         }
     }
 
-    pub(crate) fn from_node_with_location(node: &SyntaxNode, location: NodeLocation) -> Option<Self> {
-        let mut new_node = Self::from_node(node);
+    pub(crate) fn from_node_with_location(node: &SyntaxNode, location: NodeLocation, prefix: String) -> Option<Self> {
+        let mut new_node = Self::from_node(node, prefix);
         new_node.as_mut().map(| n| n.location = location);
         new_node
     }
@@ -177,9 +177,9 @@ impl From<&RustTraceableNode> for JsonValue {
 }
 
 #[derive(Debug, Clone)]
-struct ImplementationData {
-    target: String,
-    trait_imp: Option<String>
+pub(crate) struct ImplementationData {
+    pub(crate) target: String,
+    pub(crate) trait_imp: Option<String>
 }
 
 impl ImplementationData {
