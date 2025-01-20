@@ -17,12 +17,14 @@ This tool processes rust source code with lobster annotations into the lobster i
 
 ## Used Libraries
 
-Used 3rd party libraries which are not part of the standard Python package:
+Used 3rd party libraries which are not part of the standard Rust package:
 
-* [ra_ap_syntax](https://crates.io/crates/ra_ap_syntax) - Syntax Tree crate of the rust-analyzer - MIT or Apache-2.0 License
-* [ra_ap_edition](https://crates.io/crates/ra_ap_edition) - Rust Edition Enum of the rust-analyzer - MIT or Apache-2.0 License
-* [json](https://crates.io/crates/json) - json implementation for Rust - MIT or Apache-2.0 License
-* [regex](https://crates.io/crates/regex) - regular expressions for Rust - MIT or Apache-2.0 License
+| Crate | Description | License |
+| :---: | ----------- | ------- |
+|[ra_ap_syntax](https://crates.io/crates/ra_ap_syntax) | Syntax Tree crate of the rust-analyzer | MIT or Apache-2.0 License |
+| [ra_ap_edition](https://crates.io/crates/ra_ap_edition) | Rust Edition Enum of the rust-analyzer | MIT or Apache-2.0 License |
+| [json](https://crates.io/crates/json) | Json implementation for Rust | MIT or Apache-2.0 License |
+| [regex](https://crates.io/crates/regex) | Regular expressions for Rust | MIT or Apache-2.0 License |
 
 ## Issues, Ideas And Bugs
 
@@ -31,6 +33,7 @@ If you have further ideas or you found some bugs, great! Create a issue or if yo
 ## License
 
 The lobster-rust source code is published under [BSD-3-Clause](https://github.com/NewTec-GmbH/lobster-rust/blob/main/LICENSE).
+
 Consider the different licenses of the used third party libraries too!
 
 ## Contribution
