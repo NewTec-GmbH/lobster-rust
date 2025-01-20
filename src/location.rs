@@ -1,3 +1,5 @@
+/// FileReference and GithubReference to track file source and posiiton in files.
+
 use json::{JsonValue, object::Object};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

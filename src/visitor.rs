@@ -3,7 +3,7 @@
 use ra_ap_syntax::{SyntaxElement, SyntaxNode, SyntaxToken, NodeOrToken, SyntaxKind};
 use regex::Regex;
 
-use crate::{RustTraceableNode, NodeLocation, Searchable};
+use crate::{traceable_node::RustTraceableNode, NodeLocation, syntax_extensions::Searchable};
 
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
