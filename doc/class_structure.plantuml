@@ -1,0 +1,125 @@
+@startuml lobster-rust-classes
+package ra_ap_syntax {
+    enum SyntaxElement {
+        Node: SyntaxNode
+        Token: SyntaxToken
+    }
+
+    class SyntaxNode {}
+    class SyntaxToken {}
+}
+
+note "From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file." as SyntaxNote
+
+SyntaxNote .. ra_ap_syntax
+
+
+
+SyntaxElement *-- SyntaxNode
+SyntaxElement *-- SyntaxToken
+
+interface Visitable {
+    {abstract} visit(visitor: Visitor)
+}
+
+SyntaxElement ..|> Visitable
+SyntaxNode ..|> Visitable
+SyntaxToken ..|> Visitable
+
+interface Visitor {
+    {abstract} node_enter(node: SyntaxNode)
+    {abstract} node_exit(node: SyntaxNode)
+    {abstract} token_visit(token: SyntaxToken)
+    {abstract} travel(root: SyntaxNode)
+}
+
+Visitable .right. Visitor
+
+class RustVisitor {
+    filename: String
+    vdata: VisitorData
+    node_enter(node: SyntaxNode)
+    node_exit(node: SyntaxNode)
+    token_visit(token: SyntaxToken)
+    travel(root: SyntaxNode)
+}
+
+RustVisitor ..|> Visitor
+
+class VisitorData {
+    ws_data: WhitespaceData
+    node_stack: RustTraceableNode
+}
+
+RustVisitor *- "1" VisitorData
+
+class WhitespaceData {
+    current_line: usize
+    last_linebrk: usize
+}
+
+VisitorData *- "1" WhitespaceData
+VisitorData o-- "*" RustTraceableNode
+
+enum NodeKind {
+    Module
+    Struct
+    Enum
+    Trait
+    Function
+}
+
+class RustTraceableNode {
+    name: String
+    kind: NodeKind
+    location: NodeLocation
+    children[]: RustTraceableNode
+    just[]: String
+    refs[]: String
+
+    to_lobster()
+    from_node(node: SyntaxNode) -> Self
+    from_node_with_location(node: SyntaxNode, location: NodeLocation) -> Self
+    append_child(child: RustTraceableNode)
+    to_lobster(items: JsonValue[])
+}
+
+RustTraceableNode o-- "*" RustTraceableNode
+
+enum NodeLocation {
+    File: FileReference
+    Github: GithubReference
+
+    from(filename: String, line: Option<usize>, column: Option<usize>) -> Self
+}
+
+class FileReference {
+    filename: String
+    line: Option<usize>
+    column: Option<usize>
+    to_string() -> String
+    set_line(usize)
+    set_col(usize)
+}
+
+class GithubReference{}
+
+NodeLocation *-- FileReference
+NodeLocation *-- GithubReference
+
+RustTraceableNode *-- "1" NodeKind
+RustTraceableNode *-- "1" NodeLocation
+
+package json {
+    class JsonValue {
+        from(RustTraceableNode) -> Self
+    }
+}
+
+RustTraceableNode .. JsonValue
+
+note "From json crate." as JsonNote
+
+JsonNote .. json
+
+@enduml

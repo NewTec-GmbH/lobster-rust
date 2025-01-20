@@ -1,0 +1,10 @@
+[package]
+name = "lobster-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ra_ap_syntax = "0.0.257"
+ra_ap_edition = "0.0.257"
+json = "0.12.4"
+regex = "1.11.1"
