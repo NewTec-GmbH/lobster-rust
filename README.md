@@ -30,7 +30,7 @@ If you have further ideas or you found some bugs, great! Create a issue or if yo
 
 ## License
 
-The lobster-rust source code is published under the terms of both the MIT license and the Apache License (Version 2.0).
+The lobster-rust source code is published under [BSD-3-Clause](https://github.com/NewTec-GmbH/lobster-rust/blob/main/LICENSE).
 Consider the different licenses of the used third party libraries too!
 
 ## Contribution
