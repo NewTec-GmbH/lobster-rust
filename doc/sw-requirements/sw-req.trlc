@@ -1,0 +1,36 @@
+package LobsterRust
+
+section "lobster-rust" {
+
+    section "Software Requirements" {
+
+        section "General" {
+
+        }
+
+        section "Command Line Arguments" {
+
+        }
+
+        section "Requirement Tracing" {
+            
+        }
+
+        section "Output Format" {
+
+        }
+
+    }
+
+    section "Software Constraints" {
+
+        SwConstraint sw_constraint_os_win {
+            description = "The software shall support the Windows operating system."
+        }
+        
+        SwConstraint sw_constraint_os_linux {
+            description = "The software shall support the Linux operating system."
+        }
+    }
+
+}
