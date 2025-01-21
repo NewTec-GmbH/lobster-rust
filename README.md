@@ -27,7 +27,7 @@ Used 3rd party libraries which are not part of the standard Rust package:
 
 ## Issues, Ideas And Bugs
 
-If you have further ideas or you found some bugs, great! Create a issue or if you are able and willing to fix it by yourself, fork the repository and create a pull request.
+If you have further ideas or you found some bugs, great! Create an [issue](https://github.com/NewTec-GmbH/lobster-rust/issues) or if you are able and willing to fix it by yourself, fork the repository and create a pull request.
 
 ## License
 
