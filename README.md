@@ -24,6 +24,7 @@ Used 3rd party libraries which are not part of the standard Rust package:
 | [ra_ap_edition](https://crates.io/crates/ra_ap_edition) | Rust Edition Enum of the rust-analyzer | MIT or Apache-2.0 License |
 | [json](https://crates.io/crates/json) | Json implementation for Rust | MIT or Apache-2.0 License |
 | [regex](https://crates.io/crates/regex) | Regular expressions for Rust | MIT or Apache-2.0 License |
+| [clap](https://crates.io/crates/clap) | Command line argument parser for Rust | MIT or Apache-2.0 License |
 
 ## Issues, Ideas And Bugs
 

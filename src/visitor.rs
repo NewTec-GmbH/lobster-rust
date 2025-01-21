@@ -157,7 +157,7 @@ impl RustVisitor {
             (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix = trim_filename(&filepath).unwrap_or(String::new());
+        let prefix = trim_filename(&filepath).unwrap_or(String::new());
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Parse node.

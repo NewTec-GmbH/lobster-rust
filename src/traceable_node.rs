@@ -179,14 +179,14 @@ impl From<&RustTraceableNode> for JsonValue {
 #[derive(Debug, Clone)]
 pub(crate) struct ImplementationData {
     pub(crate) target: String,
-    pub(crate) trait_imp: Option<String>
+    pub(crate) _trait_imp: Option<String>
 }
 
 impl ImplementationData {
     fn new(target: String, trait_imp: Option<String>) -> Self {
         ImplementationData {
             target,
-            trait_imp
+            _trait_imp: trait_imp
         }
     }
 }
