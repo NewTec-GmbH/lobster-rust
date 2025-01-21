@@ -1,0 +1,18 @@
+package LobsterRust
+
+type SwReqDiagram {
+    file_path	String
+    caption		String
+}
+
+type SwReq {
+    description 			String
+    verification_proposal   String
+    info 		optional	String
+    derived		optional	SwReq [0 .. *]
+}
+
+type SwConstraint {
+    description 			String
+    info 		optional	String
+}
