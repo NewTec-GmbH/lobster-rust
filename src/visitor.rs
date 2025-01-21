@@ -3,7 +3,7 @@
 use ra_ap_syntax::{SyntaxElement, SyntaxNode, SyntaxToken, NodeOrToken, SyntaxKind};
 use regex::Regex;
 
-use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation};
+use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation, utils::trim_filename};
 
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
@@ -124,9 +124,10 @@ impl RustVisitor {
             (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
         // Get filename as prefix
-        let mut prefix = self.vdata.get_root().unwrap().name.clone();
-        let location = NodeLocation::from(prefix.clone(), Some(line), Some(col));
-
+        let filepath = self.vdata.get_root().unwrap().name.clone();
+        let mut prefix = trim_filename(&filepath).unwrap_or(String::new());
+        let location = NodeLocation::from(filepath, Some(line), Some(col));
+        
         // Check for enclosing impl
         if let Some(impl_data) = self.get_enclosing_scope() {
             prefix += ".";
@@ -155,11 +156,12 @@ impl RustVisitor {
         } else {
             (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
-        let filename = self.vdata.get_root().unwrap().name.clone();
-        let location = NodeLocation::from(filename.clone(), Some(line), Some(col));
+        let filepath = self.vdata.get_root().unwrap().name.clone();
+        let mut prefix = trim_filename(&filepath).unwrap_or(String::new());
+        let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(struct_node, location, filename).unwrap_or_else(|| panic!("Could not parse struct at line {:#?}.", self.vdata.whitespace_data.current_line));
+        let node = RustTraceableNode::from_node_with_location(struct_node, location, prefix).unwrap_or_else(|| panic!("Could not parse struct at line {:#?}.", self.vdata.whitespace_data.current_line));
         self.vdata.node_stack.push(node);
     }
 
