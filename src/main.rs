@@ -70,6 +70,9 @@ fn main() {
     // add data
     let mut jout = JsonValue::Object(Object::new());
     let _ = jout.insert("data", data);
+    let _ = jout.insert("generator", "lobster-rust");
+    let _ = jout.insert("schema", "lobster-imp-trace");
+    let _ = jout.insert("version", "3");
 
     // write json to output file
     let outfile: String;
