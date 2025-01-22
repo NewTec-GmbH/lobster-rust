@@ -35,7 +35,7 @@ impl NodeKind {
 pub(crate) struct RustTraceableNode {
     // lobster-trace: HOLD.refs
     pub(crate) name: String,
-    pub(crate)kind: NodeKind,
+    pub(crate) kind: NodeKind,
     pub(crate) location: NodeLocation,
     pub(crate) children: Vec<RustTraceableNode>,
     pub(crate) just: Vec<String>,

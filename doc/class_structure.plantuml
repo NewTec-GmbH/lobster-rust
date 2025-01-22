@@ -9,11 +9,9 @@ package ra_ap_syntax {
     class SyntaxToken {}
 }
 
-note "From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file." as SyntaxNote
-
-SyntaxNote .. ra_ap_syntax
-
-
+note top of ra_ap_syntax
+From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file.
+end note
 
 SyntaxElement *-- SyntaxNode
 SyntaxElement *-- SyntaxToken
@@ -22,9 +20,33 @@ interface Visitable {
     {abstract} visit(visitor: Visitor)
 }
 
+note bottom of Visitable
+Visitable defines an interface that allows any struct implementing the Visitor trait to traverse the implementing struct.
+
+Implementing Visitable includes defining how the node_enter(), node_exit() and token_visit() functions are applied to the struct.
+end note
+
 SyntaxElement ..|> Visitable
 SyntaxNode ..|> Visitable
 SyntaxToken ..|> Visitable
+
+package syntax_extensions {
+    interface Searchable {
+        get_child_kind()
+        get_children_kind()
+        get_tokens_kind()
+    }
+}
+
+note bottom of syntax_extensions
+From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file.
+end note
+
+SearchNote ... syntax_extensions
+RustVisitor ... syntax_extensions
+
+SyntaxElement --|> Searchable
+SyntaxNode --|> Searchable
 
 interface Visitor {
     {abstract} node_enter(node: SyntaxNode)
@@ -44,6 +66,13 @@ class RustVisitor {
     travel(root: SyntaxNode)
 }
 
+note top of RustVisitor
+The RustVisitor traverses the SyntaxTree via the travel() method.
+
+Its node_enter(), node_exit() and token_visit() produce RustTraceableNodes,
+depending on the kind of SyntaxNodes and SyntaxTokens encountered in the tree.
+end note
+
 RustVisitor ..|> Visitor
 
 class VisitorData {
@@ -51,12 +80,22 @@ class VisitorData {
     node_stack: RustTraceableNode
 }
 
+note top of VisitorData
+The node_stack is used to provide context information for nodes being parsed.
+It also allows building of a new trace tree of RustTraceableNodes by appending finished nodes as children of their parents.
+end note
+
 RustVisitor *- "1" VisitorData
 
 class WhitespaceData {
     current_line: usize
     last_linebrk: usize
 }
+
+note top of WhitespaceData
+Whitespace data is used to track data from visited whitespace tokens.
+This allows calculating the specific location in the file for nodes and tokens being parsed.
+end note
 
 VisitorData *- "1" WhitespaceData
 VisitorData o-- "*" RustTraceableNode
@@ -67,6 +106,7 @@ enum NodeKind {
     Enum
     Trait
     Function
+    Impl
 }
 
 class RustTraceableNode {
@@ -76,6 +116,7 @@ class RustTraceableNode {
     children[]: RustTraceableNode
     just[]: String
     refs[]: String
+    impl_data: Option<ImplementationData>
 
     to_lobster()
     from_node(node: SyntaxNode) -> Self
@@ -84,7 +125,21 @@ class RustTraceableNode {
     to_lobster(items: JsonValue[])
 }
 
+note right of RustTraceableNode
+The RustTraceableNode holds all the information needed to produce data items in the lobster interchange formate.
+
+The .to_lobster() method will convert it and its children into json items, depending on the NodeKind.
+These json items can then form the data section of the lobster interchange format.
+end note
+
 RustTraceableNode o-- "*" RustTraceableNode
+
+class ImplementationData {
+    target: String,
+    trait_imp: Option<String>
+}
+
+RustTraceableNode --o "0..1" ImplementationData
 
 enum NodeLocation {
     File: FileReference
