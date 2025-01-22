@@ -1,6 +1,6 @@
 # lobster-rust <!-- omit in toc -->
 
-[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://github.com/NewTec-GmbH/lobster-rust/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/License-BSD-3.svg)](https://github.com/NewTec-GmbH/lobster-rust/blob/main/LICENSE)
 [![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
 Rust tool to process rust projects for BMWs [lobster](https://github.com/bmw-software-engineering/lobster).
