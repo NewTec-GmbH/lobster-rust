@@ -16,12 +16,16 @@ mod utils;
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
+    // lobster-trace: LobsterRust.positional_arguments
     /// Directory of main.rs (or lib.rs)
     dir: Option<String>,
 
+    // lobster-trace: LobsterRust.argument_options
     /// Output directory for the .lobster file
+    #[arg(short, long)]
     out: Option<String>,
 
+    // lobster-trace: LobsterRust.argument_flags
     /// Parse lib.rs as project root instead of main.rs
     #[arg(short, long)]
     lib: bool,
@@ -36,6 +40,7 @@ struct Cli {
 }
 
 fn main() {
+    // lobster-trace: LobsterRust.cli
     let args = Cli::parse();
 
     let mut filename;
@@ -67,7 +72,7 @@ fn main() {
     let mut data: Vec<JsonValue> = Vec::new();
     module.to_lobster(&mut data);
 
-    // add data
+    // add data and additional keywords
     let mut jout = JsonValue::Object(Object::new());
     let _ = jout.insert("data", data);
     let _ = jout.insert("generator", "lobster-rust");
@@ -87,17 +92,5 @@ fn main() {
             let mut outwriter = BufWriter::new(outfile);
             let _ = jout.write_pretty(&mut outwriter, 4);
         }
-    }
-}
-
-struct _Teststruct {
-    // lobster-trace: TEST.struct
-    testfield: u32
-}
-
-impl _Teststruct {
-    fn _increase(&mut self) {
-        // lobster-trace: TEST.method
-        self.testfield += 1;
     }
 }
