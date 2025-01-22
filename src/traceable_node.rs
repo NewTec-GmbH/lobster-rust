@@ -82,7 +82,7 @@ impl RustTraceableNode {
                 NodeKind::Impl => {
                     let traceable_node: Option<RustTraceableNode>;
                     // get target and optional trait that gets implemented
-                    let path_nodes = node.get_childs_kind(SyntaxKind::PATH_TYPE);
+                    let path_nodes = node.get_children_kind(SyntaxKind::PATH_TYPE);
 
                     // either impl STRUCTNAME or impl TRAITNAME for STRUCTNAME
                     if path_nodes.len() == 2 {

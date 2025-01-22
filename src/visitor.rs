@@ -154,7 +154,7 @@ impl RustVisitor {
         if let Some(struct_kw_token) = struct_node.get_tokens_kind(SyntaxKind::STRUCT_KW).pop() {
             (line, col) = self.vdata.whitespace_data.calculate_element_location(&NodeOrToken::Token(struct_kw_token));
         } else {
-            (line, col) = (self.vdata.whitespace_data.current_line, 0);
+            (line, col) = (self.vdata.whitespace_data.current_line, 1);
         }
         let filepath = self.vdata.get_root().unwrap().name.clone();
         let prefix = trim_filename(&filepath).unwrap_or(String::new());
