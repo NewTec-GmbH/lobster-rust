@@ -13,14 +13,9 @@ mod traceable_node;
 mod utils;
 mod visitor;
 
-/// Entry function of the tool.
-///
-/// This function defines the general workflow of lobste-rust.
-/// First the CLI args are parsed  and the first visitor is created and started accordingly.
-/// This visitor is expected to start module visitors for every resolved module inlusion by itself.
-/// Afterwards all parsed information is combined into the lobster common interchange format.
 fn main() {
     // Parse command line interface arguments.
+    // lobster-trace: LobsterRust.cli
     let args = args::Cli::parse();
 
     // Determine entry file filename (lib.rs instead of main.rs if --lib flag is set).
@@ -45,7 +40,6 @@ fn main() {
         module.to_lobster(&mut data);
     }
 
-    // Combine parsed data and fixed information to full lobster common interchange format output.
     let mut jout = JsonValue::Object(Object::new());
     let _ = jout.insert("data", data);
     let _ = jout.insert("generator", "lobster-rust");

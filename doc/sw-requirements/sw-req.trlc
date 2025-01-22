@@ -6,9 +6,30 @@ section "lobster-rust" {
 
         section "General" {
 
+            SwReq cli {
+                description = "The softwre shall be a command-line interface (CLI) application."
+                verification_proposal = "Every feature shall be accessible via the command line. Therefore its verified by the CLI tests."
+            }
         }
 
         section "Command Line Arguments" {
+
+            SwReq positional_arguments {
+                description = "The software shall read the optional positional algrument 'dir' and treat is as a String."
+                verification_proposal = "CLI tests"
+                info = "The current working directory will be chosen as a default if no dir argument is provided."
+            }
+
+            SwReq argument_options {
+                description = "The software shall read the argument after the optional [-o, --out] flag as 'out' argument and treat it as a String."
+                verification_proposal = "CLI tests"
+                info = "The current working directory will be chosen as a default if no out argument is provided."
+            }
+
+            SwReq argument_flags {
+                description = "The software shall read the [-l, --lib], --activity, --only-tagged-functions, [-h, --help] and [-v, --version] flags and treat their occurence as a bool."
+                verification_proposal = "CLI tests"
+            }
 
         }
 
