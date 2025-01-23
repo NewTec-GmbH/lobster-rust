@@ -6,35 +6,35 @@ use ra_ap_edition::Edition;
 use json::{object::Object, JsonValue};
 use visitor::{RustVisitor, Visitor};
 use clap::Parser;
+use std::path::Path;
 
 mod location;
 mod visitor;
 mod traceable_node;
 mod syntax_extensions;
-mod utils;
 
 fn main() {
     let args = args::Cli::parse();
 
-    let mut filename;
+    let filename;
     if args.lib {
-        filename = "lib.rs".to_string();
+        filename = Path::new("lib.rs");
     } else {
-        filename = "main.rs".to_string();
+        filename =  Path::new("main.rs");
     }
 
-    filename.insert_str(0, &args.dir);
+    let filepath = Path::new(&args.dir).join(filename);
 
     let text: String;
-    match fs::read_to_string(&filename) {
+    match fs::read_to_string(&filepath) {
         Ok(t) => text = t,
-        Err(e) => panic!("File: {}\n{}", &filename, e),
+        Err(e) => panic!("File: {:#?}\n{}", &filename, e),
     }
     let parse = SourceFile::parse(&text, Edition::Edition2024);
     let tree: SourceFile = parse.tree();
     let root_node = tree.syntax();
 
-    let mut visitor = RustVisitor::new(filename);
+    let mut visitor = RustVisitor::new(filepath);
 
     visitor.travel(&root_node);
 
@@ -51,14 +51,9 @@ fn main() {
     let _ = jout.insert("version", 3);
 
     // write json to output file
-    let outfile: String;
-    if let Some(outarg) = args.out {
-        outfile = outarg;
-    } else {
-        outfile = "rust.lobster".to_string();
-    }
+    let outfile: &Path = Path::new(&args.out);
     match File::create(&outfile) {
-        Err(e) => panic!("Outfile: {}\n{}", &outfile, e),
+        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
         Ok(outfile) => {
             let mut outwriter = BufWriter::new(outfile);
             let _ = jout.write_pretty(&mut outwriter, 4);
@@ -89,7 +84,8 @@ mod args {
         pub(super) dir: String,
 
         /// Output directory for the .lobster file
-        pub(super) out: Option<String>,
+        #[arg(default_value_t = ("rust.lobster".to_string()))]
+        pub(super) out: String,
 
         /// Parse lib.rs as project root instead of main.rs
         #[arg(short, long)]
