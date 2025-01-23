@@ -13,30 +13,8 @@ mod traceable_node;
 mod syntax_extensions;
 mod utils;
 
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-struct Cli {
-    /// Directory of main.rs (or lib.rs)
-    dir: Option<String>,
-
-    /// Output directory for the .lobster file
-    out: Option<String>,
-
-    /// Parse lib.rs as project root instead of main.rs
-    #[arg(short, long)]
-    lib: bool,
-
-    /// Generate activity traces (tests) instead of an implementation trace. UNSUPPORTED
-    #[arg(long)]
-    activity: bool,
-
-    /// Only trace functions with tags
-    #[arg(long)]
-    only_tagged_functions: bool
-}
-
 fn main() {
-    let args = Cli::parse();
+    let args = args::Cli::parse();
 
     let mut filename;
     if args.lib {
@@ -45,9 +23,7 @@ fn main() {
         filename = "main.rs".to_string();
     }
 
-    if let Some(directory) = args.dir {
-        filename.insert_str(0, &directory);
-    }
+    filename.insert_str(0, &args.dir);
 
     let text: String;
     match fs::read_to_string(&filename) {
@@ -99,5 +75,32 @@ impl _Teststruct {
     fn _increase(&mut self) {
         // lobster-trace: TEST.method
         self.testfield += 1;
+    }
+}
+
+#[allow(unused_parens)]
+mod args {
+    use clap::Parser;
+    #[derive(Parser)]
+    #[command(version, about, long_about = None)]
+    pub(super) struct Cli {
+        /// Directory of main.rs (or lib.rs)
+        #[arg(default_value_t = ("./src/".to_string()))]
+        pub(super) dir: String,
+
+        /// Output directory for the .lobster file
+        pub(super) out: Option<String>,
+
+        /// Parse lib.rs as project root instead of main.rs
+        #[arg(short, long)]
+        pub(super) lib: bool,
+
+        /// Generate activity traces (tests) instead of an implementation trace. UNSUPPORTED
+        #[arg(long)]
+        pub(super) activity: bool,
+
+        /// Only trace functions with tags
+        #[arg(long)]
+        pub(super) only_tagged_functions: bool
     }
 }
