@@ -1,9 +1,10 @@
 /// RustVisitor to traverse the syntax tree and gather data
 
 use ra_ap_syntax::{SyntaxElement, SyntaxNode, SyntaxToken, NodeOrToken, SyntaxKind};
+use std::path::PathBuf;
 use regex::Regex;
 
-use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation, utils::trim_filename};
+use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation};
 
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
@@ -85,14 +86,14 @@ impl WhitespaceData {
 }
 
 pub(crate) struct RustVisitor {
-    pub(crate) filename: String,
+    pub(crate) filepath: PathBuf,
     pub(crate) vdata: VisitorData,
 }
 
 impl RustVisitor {
-    pub(crate) fn new(filename: String) -> Self {
+    pub(crate) fn new(filepath: PathBuf) -> Self {
         RustVisitor {
-            filename,
+            filepath,
             vdata: VisitorData {
                 whitespace_data: WhitespaceData { current_line: 1, last_linebrk: 0 },
                 node_stack: Vec::new()
@@ -107,11 +108,15 @@ impl RustVisitor {
         .map(|rtn| rtn.impl_data.as_ref()).flatten()
     }
 
-    // Node visit functions
+    fn get_filename(&self) -> String {
+        self.filepath.file_name().unwrap().to_string_lossy().to_string()
+    }
+
+    /*********************** Node visit functions ***********************/
 
     fn enter_source(&mut self, source_node: &SyntaxNode) {
         let mut root_node = RustTraceableNode::from_node(source_node, String::new()).unwrap();
-        root_node.name = self.filename.clone();
+        root_node.name = self.get_filename();
         self.vdata.node_stack.push(root_node);
     }
 
@@ -125,7 +130,7 @@ impl RustVisitor {
         }
         // Get filename as prefix
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix = trim_filename(&filepath).unwrap_or(String::new());
+        let mut prefix = self.get_filename();
         let location = NodeLocation::from(filepath, Some(line), Some(col));
         
         // Check for enclosing impl
@@ -157,7 +162,7 @@ impl RustVisitor {
             (line, col) = (self.vdata.whitespace_data.current_line, 1);
         }
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let prefix = trim_filename(&filepath).unwrap_or(String::new());
+        let prefix = self.get_filename();
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Parse node.
@@ -186,7 +191,25 @@ impl RustVisitor {
         }
     }
 
-    // Token visit functions
+    fn enter_module(&mut self, mod_node: &SyntaxNode) {
+        let name_node = mod_node.get_child_kind(SyntaxKind::NAME).unwrap();
+        let last_child = mod_node.children_with_tokens().last().unwrap();
+        match last_child {
+            NodeOrToken::Token(t) => {
+                if t.kind() == SyntaxKind::SEMICOLON {
+                    println!("Mod import of {}", name_node.text());
+                } else if t.kind() == SyntaxKind::ITEM_LIST {
+                    println!("Local mod named {}", name_node.text());
+                } else {
+                    println!("Last token is {:?}", t.kind());
+                    println!("{:#?}", mod_node);
+                }
+            }
+            NodeOrToken::Node(n) => println!("Last node is {:?}", n.kind()),
+        }
+    }
+
+    /*********************** Token visit functions ***********************/
 
     fn visit_whitespace(&mut self, whitespace_token: &SyntaxToken) {
         // Update whitespace data to hold current line and charpos of last linebreak
@@ -230,6 +253,7 @@ impl Visitor for RustVisitor {
             SyntaxKind::SOURCE_FILE => self.enter_source(node),
             SyntaxKind::STRUCT => self.enter_struct(node),
             SyntaxKind::IMPL => self.enter_impl(node),
+            SyntaxKind::MODULE => self.enter_module(node),
             _ => (),
         }
     }

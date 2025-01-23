@@ -23,7 +23,7 @@ This completes the 3 most common ways to include modules that need to be support
 
 1. Inclusion of module on the same level.
 
-    ```mod filename;```: Try to parse ```./filename.rs`` in the same directory as the current file.
+    ```mod filename;```: Try to parse ```./filename.rs``` in the same directory as the current file.
 
 2. Inclusion of submodules in directory with mod.rs file.
 
@@ -35,4 +35,4 @@ This completes the 3 most common ways to include modules that need to be support
 
 ## Currently unsupported
 
-1. path attributes to alter the mod keyword: The path that would be included by the mod keyword can be altered by the ```path``` attribute. This can be useful to add code files including a - in their name.
+1. path attributes (like ```#[path="./other-file.rs"]```) to alter the mod keyword: The path that would be included by the mod keyword can be altered by the ```path``` attribute. This can be useful to add code files including a - in their name.
