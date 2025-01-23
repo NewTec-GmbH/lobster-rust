@@ -1,0 +1,23 @@
+@startuml General Workflow
+start
+:parse CL args;
+
+:determine main file
+main.rs or lib.rs;
+
+:start main file visitor;
+
+if (module included?) is (yes) then
+:start module file visitor;
+else  (no)
+endif
+
+:wait for all visitors to finish;
+
+:combine visitor results;
+
+:convert results to lobster interchange format;
+
+:write lobster result to output;
+stop
+@enduml
