@@ -1,7 +1,7 @@
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
 
-pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<PathBuf> {
+pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<(PathBuf, String)> {
     let current_path = current_file.parent()?;
 
     // Option 1: target.rs file in the same directory.
@@ -13,7 +13,7 @@ pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<
     for directory_entry in &directory_content {
         if let Some(file_name) = directory_entry.path().file_name() {
             if &file_target == file_name.to_str().unwrap() {
-                return Some(directory_entry.path());
+                return Some((directory_entry.path(), String::new()));
             }
         }
     }
@@ -28,7 +28,13 @@ pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<
             for subdirectory_entry in subdirectory_content {
                 if let Some(file_name) = subdirectory_entry.path().file_name() {
                     if "mod.rs" == file_name.to_str().unwrap() {
-                        return Some(subdirectory_entry.path());
+                        let context_string = directory_entry
+                            .path()
+                            .file_name()
+                            .unwrap()
+                            .to_string_lossy()
+                            .to_string();
+                        return Some((subdirectory_entry.path(), context_string));
                     }
                 }
             }
@@ -48,12 +54,14 @@ pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<
             for subdirectory_entry in subdirectory_content {
                 if let Some(file_name) = subdirectory_entry.path().file_name() {
                     if file_target == file_name.to_str().unwrap() {
-                        return Some(subdirectory_entry.path());
+                        return Some((subdirectory_entry.path(), current_file_stem.to_string()));
                     }
                 }
             }
         }
     }
+
+    // Option 4: target/mod.rs in directory with the same name as the current file. TODO
 
     // Include could not be resolved.
     None

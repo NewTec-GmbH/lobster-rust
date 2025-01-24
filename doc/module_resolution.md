@@ -1,4 +1,4 @@
-# Module Resolution Strategy
+# Module Declaration Resolution
 
 ## Introduction
 
@@ -19,20 +19,32 @@ This way of including submodules is valid since Rust 2018 and should therefore b
 
 This completes the 3 most common ways to include modules that need to be supported in lobster-rust.
 
-## Cases and resolution order
+## Supported cases and resolution order
 
 1. Inclusion of module on the same level.
 
     ```mod filename;```: Try to parse ```./filename.rs``` in the same directory as the current file.
 
+    Only applies if current file is ```mod.rs```, ```main.rs``` or ```lib.rs```.
+
 2. Inclusion of submodules in directory with mod.rs file.
 
-    ```mod dirname;``` If there is no dirname.rs, try to find ```./dirname/mod.rs```.
+    ```mod dirname;``` If case one does not apply (no dirname.rs), try to find ```./dirname/mod.rs```.
 
-3. Inclusion of submodules in directory with directoryname.rs file.
+    Only applies if current file is ```mod.rs```, ```main.rs``` or ```lib.rs```.
 
-    ```mod filename;``` If case 1 and 2 dont apply, try to find ```./current_file_name/filename.rs```.
+3. Inclusion of submodules in directory with the same name as the current file.
 
-## Currently unsupported
+    ```mod filename;``` Try to resolve ```./current_file_stem/filename.rs```.
+
+4. Inclsion of submodules in subdirectory of directory with the same name as the current file.
+
+    ```mod dirname;``` Try to resolve ```./current_file_stem/dirname/mod.rs```.
+
+## Additional details
 
 1. path attributes (like ```#[path="./other-file.rs"]```) to alter the mod keyword: The path that would be included by the mod keyword can be altered by the ```path``` attribute. This can be useful to add code files including a - in their name.
+
+## Unsupported
+
+All other ways of including source files in a Rust project are currently not supported by lobster-rust. Please open an issue with details on the necessary module inclusion method if it needs to be integrated into the tool.
