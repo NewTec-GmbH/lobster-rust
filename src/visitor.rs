@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use crate::{
     includes::resolve_include,
     syntax_extensions::Searchable,
-    traceable_node::{ImplementationData, NodeKind, RustTraceableNode},
+    traceable_node::{ContextData, NodeKind, RustTraceableNode},
     NodeLocation,
 };
 
@@ -118,15 +118,15 @@ impl RustVisitor {
         }
     }
 
-    fn get_enclosing_scope(&self) -> Option<&ImplementationData> {
+    fn get_enclosing_scope(&self) -> Option<&ContextData> {
         // Get reference to the implementation data of the latest Impl node.
         self.vdata
             .node_stack
             .iter()
             .rev()
-            .filter(|n| NodeKind::Impl == n.kind)
+            .filter(|n| NodeKind::Context == n.kind)
             .next()
-            .map(|rtn| rtn.impl_data.as_ref())
+            .map(|rtn| rtn.context_data.as_ref())
             .flatten()
     }
 
@@ -194,10 +194,10 @@ impl RustVisitor {
         let mut prefix = self.get_filename();
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
-        // Check for enclosing impl
-        if let Some(impl_data) = self.get_enclosing_scope() {
+        // Check for enclosing context
+        if let Some(context_data) = self.get_enclosing_scope() {
             prefix += ".";
-            prefix += &impl_data.target;
+            prefix += &context_data.namespace;
         }
 
         // Parse node.
@@ -232,8 +232,14 @@ impl RustVisitor {
             (line, col) = (self.vdata.whitespace_data.current_line, 1);
         }
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let prefix = self.get_filename();
+        let mut prefix = self.get_filename();
         let location = NodeLocation::from(filepath, Some(line), Some(col));
+
+        // Check for enclosing context
+        if let Some(context_data) = self.get_enclosing_scope() {
+            prefix += ".";
+            prefix += &context_data.namespace;
+        }
 
         // Parse node.
         let node = RustTraceableNode::from_node_with_location(struct_node, location, prefix)
@@ -273,10 +279,33 @@ impl RustVisitor {
         match last_child {
             NodeOrToken::Token(t) => {
                 if t.kind() == SyntaxKind::SEMICOLON {
+                    // Found module declaration. Resolve to corresponding file.
                     if let Some(modpath) =
                         resolve_include(&self.filepath, &name_node.text().to_string())
                     {
                         self.module_visitors.push(RustVisitor::new(modpath));
+                    }
+                }
+            }
+            NodeOrToken::Node(n) => {
+                if n.kind() == SyntaxKind::ITEM_LIST {
+                    // Found local module. Parse as Context.
+                    let context_node =
+                        RustTraceableNode::from_node(mod_node, String::new()).unwrap();
+                    self.vdata.node_stack.push(context_node);
+                }
+            }
+        }
+    }
+
+    fn exit_module(&mut self, mod_node: &SyntaxNode) {
+        // Only pop the last Context if this mod_node was added as a Context.
+        match mod_node.children_with_tokens().last().unwrap() {
+            NodeOrToken::Node(n) => {
+                if n.kind() == SyntaxKind::ITEM_LIST {
+                    let closed_context = self.vdata.node_stack.pop().unwrap();
+                    if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
+                        enclosing_node.append_child(closed_context);
                     }
                 }
             }
@@ -334,8 +363,8 @@ impl RustVisitor {
 impl Visitor for RustVisitor {
     fn node_enter(&mut self, node: &SyntaxNode) {
         match node.kind() {
-            SyntaxKind::FN => self.enter_fn(node),
             SyntaxKind::SOURCE_FILE => self.enter_source(node),
+            SyntaxKind::FN => self.enter_fn(node),
             SyntaxKind::STRUCT => self.enter_struct(node),
             SyntaxKind::IMPL => self.enter_impl(node),
             SyntaxKind::MODULE => self.enter_module(node),
@@ -348,6 +377,7 @@ impl Visitor for RustVisitor {
             SyntaxKind::FN => self.exit_fn(node),
             SyntaxKind::STRUCT => self.exit_struct(node),
             SyntaxKind::IMPL => self.exit_impl(node),
+            SyntaxKind::MODULE => self.exit_module(node),
             _ => (),
         }
     }
