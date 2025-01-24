@@ -1,10 +1,18 @@
 /// RustVisitor to traverse the syntax tree and gather data
-
-use ra_ap_syntax::{SyntaxElement, SyntaxNode, SyntaxToken, NodeOrToken, SyntaxKind};
-use std::path::PathBuf;
+use ra_ap_edition::Edition;
+use ra_ap_syntax::{
+    AstNode, NodeOrToken, SourceFile, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
+};
 use regex::Regex;
+use std::fs;
+use std::path::PathBuf;
 
-use crate::{syntax_extensions::Searchable, traceable_node::{ImplementationData, RustTraceableNode, NodeKind}, NodeLocation};
+use crate::{
+    includes::resolve_include,
+    syntax_extensions::Searchable,
+    traceable_node::{ImplementationData, NodeKind, RustTraceableNode},
+    NodeLocation,
+};
 
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
@@ -13,7 +21,7 @@ pub(crate) trait Visitable {
 impl Visitable for SyntaxElement {
     fn visit(&self, visitor: &mut dyn Visitor) {
         match self {
-            NodeOrToken::Node(n)  => n.visit(visitor),
+            NodeOrToken::Node(n) => n.visit(visitor),
             NodeOrToken::Token(t) => t.visit(visitor),
         }
     }
@@ -29,13 +37,17 @@ impl Visitable for SyntaxNode {
                 current.visit(visitor);
                 match current {
                     NodeOrToken::Node(subnode) => {
-                        let Some(next) = subnode.next_sibling_or_token() else { break; };
+                        let Some(next) = subnode.next_sibling_or_token() else {
+                            break;
+                        };
                         current = next;
-                    },
+                    }
                     NodeOrToken::Token(subtoken) => {
-                        let Some(next) = subtoken.next_sibling_or_token() else { break; };
+                        let Some(next) = subtoken.next_sibling_or_token() else {
+                            break;
+                        };
                         current = next;
-                    },
+                    }
                 }
             }
         }
@@ -57,24 +69,24 @@ pub(crate) trait Visitor {
     fn travel(&mut self, root: &SyntaxNode);
 }
 
-pub(crate) struct VisitorData {
+struct VisitorData {
     whitespace_data: WhitespaceData,
-    node_stack: Vec<RustTraceableNode>
+    node_stack: Vec<RustTraceableNode>,
 }
 
 impl VisitorData {
-    pub(crate) fn get_root(&self) -> Option<&RustTraceableNode> {
+    fn get_root(&self) -> Option<&RustTraceableNode> {
         self.node_stack.first()
     }
 
-    pub(crate) fn get_root_mut(&mut self) -> Option<&mut RustTraceableNode> {
+    fn _get_root_mut(&mut self) -> Option<&mut RustTraceableNode> {
         self.node_stack.first_mut()
     }
 }
 
 struct WhitespaceData {
     current_line: usize,
-    last_linebrk: usize
+    last_linebrk: usize,
 }
 
 impl WhitespaceData {
@@ -86,8 +98,9 @@ impl WhitespaceData {
 }
 
 pub(crate) struct RustVisitor {
-    pub(crate) filepath: PathBuf,
-    pub(crate) vdata: VisitorData,
+    filepath: PathBuf,
+    vdata: VisitorData,
+    module_visitors: Vec<RustVisitor>,
 }
 
 impl RustVisitor {
@@ -95,21 +108,66 @@ impl RustVisitor {
         RustVisitor {
             filepath,
             vdata: VisitorData {
-                whitespace_data: WhitespaceData { current_line: 1, last_linebrk: 0 },
-                node_stack: Vec::new()
-            }
-         }
+                whitespace_data: WhitespaceData {
+                    current_line: 1,
+                    last_linebrk: 0,
+                },
+                node_stack: Vec::new(),
+            },
+            module_visitors: Vec::new(),
+        }
     }
 
     fn get_enclosing_scope(&self) -> Option<&ImplementationData> {
         // Get reference to the implementation data of the latest Impl node.
-        self.vdata.node_stack.iter().rev()
-        .filter(|n| NodeKind::Impl == n.kind).next()
-        .map(|rtn| rtn.impl_data.as_ref()).flatten()
+        self.vdata
+            .node_stack
+            .iter()
+            .rev()
+            .filter(|n| NodeKind::Impl == n.kind)
+            .next()
+            .map(|rtn| rtn.impl_data.as_ref())
+            .flatten()
     }
 
     fn get_filename(&self) -> String {
-        self.filepath.file_name().unwrap().to_string_lossy().to_string()
+        self.filepath
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
+    }
+
+    pub(crate) fn parse_file(&mut self) {
+        let text: String;
+        match fs::read_to_string(&self.filepath) {
+            Ok(t) => text = t,
+            Err(e) => panic!("File: {:#?}\n{}", &self.filepath, e),
+        }
+        let parse = SourceFile::parse(&text, Edition::Edition2024);
+        let tree: SourceFile = parse.tree();
+        let root_node = tree.syntax();
+
+        self.travel(root_node);
+
+        for subvisitor in self.module_visitors.iter_mut() {
+            subvisitor.parse_file();
+        }
+    }
+
+    pub(crate) fn get_traceable_nodes(&mut self) -> Vec<RustTraceableNode> {
+        let mut out_nodes: Vec<RustTraceableNode>;
+        if 0 == self.vdata.node_stack.len() {
+            out_nodes = Vec::new();
+        } else {
+            out_nodes = vec![self.vdata.node_stack.remove(0)];
+        }
+
+        for subvisitor in self.module_visitors.iter_mut() {
+            out_nodes.append(&mut subvisitor.get_traceable_nodes());
+        }
+
+        out_nodes
     }
 
     /*********************** Node visit functions ***********************/
@@ -124,7 +182,10 @@ impl RustVisitor {
         // Calculate position in file.
         let (line, col): (usize, usize);
         if let Some(fn_kw_token) = fn_node.get_tokens_kind(SyntaxKind::FN_KW).pop() {
-            (line, col) = self.vdata.whitespace_data.calculate_element_location(&NodeOrToken::Token(fn_kw_token));
+            (line, col) = self
+                .vdata
+                .whitespace_data
+                .calculate_element_location(&NodeOrToken::Token(fn_kw_token));
         } else {
             (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
@@ -132,7 +193,7 @@ impl RustVisitor {
         let filepath = self.vdata.get_root().unwrap().name.clone();
         let mut prefix = self.get_filename();
         let location = NodeLocation::from(filepath, Some(line), Some(col));
-        
+
         // Check for enclosing impl
         if let Some(impl_data) = self.get_enclosing_scope() {
             prefix += ".";
@@ -140,7 +201,13 @@ impl RustVisitor {
         }
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(fn_node, location, prefix).unwrap_or_else(|| panic!("Could not parse fn at line {:#?}.", self.vdata.whitespace_data.current_line));
+        let node = RustTraceableNode::from_node_with_location(fn_node, location, prefix)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Could not parse fn at line {:#?}.",
+                    self.vdata.whitespace_data.current_line
+                )
+            });
         self.vdata.node_stack.push(node);
     }
 
@@ -157,7 +224,10 @@ impl RustVisitor {
         // Calculate position in file.
         let (line, col): (usize, usize);
         if let Some(struct_kw_token) = struct_node.get_tokens_kind(SyntaxKind::STRUCT_KW).pop() {
-            (line, col) = self.vdata.whitespace_data.calculate_element_location(&NodeOrToken::Token(struct_kw_token));
+            (line, col) = self
+                .vdata
+                .whitespace_data
+                .calculate_element_location(&NodeOrToken::Token(struct_kw_token));
         } else {
             (line, col) = (self.vdata.whitespace_data.current_line, 1);
         }
@@ -166,7 +236,13 @@ impl RustVisitor {
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(struct_node, location, prefix).unwrap_or_else(|| panic!("Could not parse struct at line {:#?}.", self.vdata.whitespace_data.current_line));
+        let node = RustTraceableNode::from_node_with_location(struct_node, location, prefix)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Could not parse struct at line {:#?}.",
+                    self.vdata.whitespace_data.current_line
+                )
+            });
         self.vdata.node_stack.push(node);
     }
 
@@ -197,15 +273,14 @@ impl RustVisitor {
         match last_child {
             NodeOrToken::Token(t) => {
                 if t.kind() == SyntaxKind::SEMICOLON {
-                    println!("Mod import of {}", name_node.text());
-                } else if t.kind() == SyntaxKind::ITEM_LIST {
-                    println!("Local mod named {}", name_node.text());
-                } else {
-                    println!("Last token is {:?}", t.kind());
-                    println!("{:#?}", mod_node);
+                    if let Some(modpath) =
+                        resolve_include(&self.filepath, &name_node.text().to_string())
+                    {
+                        self.module_visitors.push(RustVisitor::new(modpath));
+                    }
                 }
             }
-            NodeOrToken::Node(n) => println!("Last node is {:?}", n.kind()),
+            _ => (),
         }
     }
 
@@ -215,10 +290,19 @@ impl RustVisitor {
         // Update whitespace data to hold current line and charpos of last linebreak
         let ws_data = &mut self.vdata.whitespace_data;
 
-        let linebreaks = whitespace_token.text().chars().filter(|c| '\n' == *c).count();
+        let linebreaks = whitespace_token
+            .text()
+            .chars()
+            .filter(|c| '\n' == *c)
+            .count();
         ws_data.current_line += linebreaks;
 
-        if let Some((lbpos, _)) = whitespace_token.text().char_indices().filter(|(_, c)| '\n' == *c).last() {
+        if let Some((lbpos, _)) = whitespace_token
+            .text()
+            .char_indices()
+            .filter(|(_, c)| '\n' == *c)
+            .last()
+        {
             ws_data.last_linebrk = usize::from(whitespace_token.text_range().start()) + lbpos;
         }
     }
@@ -227,9 +311,10 @@ impl RustVisitor {
         // Parse comment for lobster trace or justification annotations
         if let Some(cnode) = self.vdata.node_stack.last_mut() {
             let trace_re = Regex::new(r"///?.*lobster-trace: (?<ref>[[:alnum:]\._-]+).*").unwrap();
-            let just_re = Regex::new(r"///?.*lobster-exclude: (?<just>[[:alnum:]\._-]+).*").unwrap();
+            let just_re =
+                Regex::new(r"///?.*lobster-exclude: (?<just>[[:alnum:]\._-]+).*").unwrap();
 
-            if let Some(cap) =  trace_re.captures(comment_token.text()) {
+            if let Some(cap) = trace_re.captures(comment_token.text()) {
                 if let Some(refmatch) = cap.name("ref") {
                     let mut refstring = refmatch.as_str().to_string();
                     refstring.insert_str(0, "req ");
