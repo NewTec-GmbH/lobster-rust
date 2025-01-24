@@ -6,10 +6,10 @@ use std::io::BufWriter;
 use std::path::Path;
 use visitor::RustVisitor;
 
-mod includes;
 mod location;
 mod syntax_extensions;
 mod traceable_node;
+mod utils;
 mod visitor;
 
 fn main() {
@@ -24,7 +24,7 @@ fn main() {
 
     let filepath = Path::new(&args.dir).join(filename);
 
-    let mut visitor = RustVisitor::new(filepath);
+    let mut visitor = RustVisitor::new(filepath, "".to_string());
     visitor.parse_file();
 
     let modules = visitor.get_traceable_nodes();

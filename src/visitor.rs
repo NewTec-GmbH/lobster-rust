@@ -8,9 +8,10 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::{
-    includes::resolve_include,
     syntax_extensions::Searchable,
-    traceable_node::{ContextData, NodeKind, RustTraceableNode},
+    traceable_node::{NodeKind, RustTraceableNode},
+    utils::extract_path_attr::extract_path_attribute,
+    utils::module_resolution::resolve_include,
     NodeLocation,
 };
 
@@ -99,14 +100,16 @@ impl WhitespaceData {
 
 pub(crate) struct RustVisitor {
     filepath: PathBuf,
+    default_context: String,
     vdata: VisitorData,
     module_visitors: Vec<RustVisitor>,
 }
 
 impl RustVisitor {
-    pub(crate) fn new(filepath: PathBuf) -> Self {
+    pub(crate) fn new(filepath: PathBuf, context: String) -> Self {
         RustVisitor {
             filepath,
+            default_context: context,
             vdata: VisitorData {
                 whitespace_data: WhitespaceData {
                     current_line: 1,
@@ -118,16 +121,23 @@ impl RustVisitor {
         }
     }
 
-    fn get_enclosing_scope(&self) -> Option<&ContextData> {
+    fn get_enclosing_scope(&self) -> Option<String> {
         // Get reference to the implementation data of the latest Impl node.
-        self.vdata
+        let nested_in: Vec<String> = self
+            .vdata
             .node_stack
             .iter()
-            .rev()
             .filter(|n| NodeKind::Context == n.kind)
-            .next()
             .map(|rtn| rtn.context_data.as_ref())
             .flatten()
+            .map(|context_data| context_data.namespace.clone())
+            .collect();
+
+        if nested_in.len() > 0 {
+            Some(nested_in.join("."))
+        } else {
+            None
+        }
     }
 
     fn get_filename(&self) -> String {
@@ -191,13 +201,18 @@ impl RustVisitor {
         }
         // Get filename as prefix
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix = self.get_filename();
+        let mut prefix;
+        if self.default_context.is_empty() {
+            prefix = self.get_filename();
+        } else {
+            prefix = self.default_context.clone() + "." + &self.get_filename();
+        }
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Check for enclosing context
-        if let Some(context_data) = self.get_enclosing_scope() {
+        if let Some(context_prefix) = self.get_enclosing_scope() {
             prefix += ".";
-            prefix += &context_data.namespace;
+            prefix += &context_prefix;
         }
 
         // Parse node.
@@ -232,13 +247,18 @@ impl RustVisitor {
             (line, col) = (self.vdata.whitespace_data.current_line, 1);
         }
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix = self.get_filename();
+        let mut prefix;
+        if self.default_context.is_empty() {
+            prefix = self.get_filename();
+        } else {
+            prefix = self.default_context.clone() + "." + &self.get_filename();
+        }
         let location = NodeLocation::from(filepath, Some(line), Some(col));
 
         // Check for enclosing context
-        if let Some(context_data) = self.get_enclosing_scope() {
+        if let Some(context_prefix) = self.get_enclosing_scope() {
             prefix += ".";
-            prefix += &context_data.namespace;
+            prefix += &context_prefix;
         }
 
         // Parse node.
@@ -280,10 +300,37 @@ impl RustVisitor {
             NodeOrToken::Token(t) => {
                 if t.kind() == SyntaxKind::SEMICOLON {
                     // Found module declaration. Resolve to corresponding file.
-                    if let Some(modpath) =
-                        resolve_include(&self.filepath, &name_node.text().to_string())
-                    {
-                        self.module_visitors.push(RustVisitor::new(modpath));
+                    let attrs = mod_node.get_children_kind(SyntaxKind::ATTR);
+                    let path_attributes: Vec<PathBuf> = attrs
+                        .iter()
+                        .map(|att| extract_path_attribute(att))
+                        .flatten()
+                        .collect();
+
+                    if let Some(module_path) = path_attributes.first() {
+                        // Resolve the path given by the path attribute.
+                        self.module_visitors.push(RustVisitor::new(
+                            self.filepath.parent().unwrap().join(module_path),
+                            "".to_string(),
+                        ));
+                    } else {
+                        // Follow the standard module declaration resolution.
+                        if let Some((modpath, context)) =
+                            resolve_include(&self.filepath, &name_node.text().to_string())
+                        {
+                            let nested_context;
+                            if context.is_empty() {
+                                nested_context = self.default_context.clone()
+                            } else {
+                                if self.default_context.is_empty() {
+                                    nested_context = context;
+                                } else {
+                                    nested_context = self.default_context.clone() + "." + &context;
+                                }
+                            }
+                            self.module_visitors
+                                .push(RustVisitor::new(modpath, nested_context));
+                        }
                     }
                 }
             }
