@@ -1,7 +1,24 @@
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
 
-pub(crate) fn resolve_include(current_file: &Path, target_name: &str) -> Option<(PathBuf, String)> {
+/// Resolved a module declaration to a path.
+///
+/// Tries to resolve a module declaration.
+/// This is dependent on the current file name.
+/// Resolution options are detailed in the code and in [the documentation](https://github.com/NewTec-GmbH/lobster-rust/blob/feature/multifile/doc/module_resolution.md).
+/// Additionally builds a context string if the module could be resolved to a path.
+///
+/// ### Parameters
+/// * `current_file` - Path to the current file (where the module was declared via the ```mod``` keyword).
+/// * `target_name` - Module name (The module name specified after the ```mod``` keyword).
+///
+/// ### Returns
+/// Some(PathBuf, String) if the module could be resolved to a path. The String contains the additional context info.
+///
+pub(crate) fn resolve_module_declaration(
+    current_file: &Path,
+    target_name: &str,
+) -> Option<(PathBuf, String)> {
     // Get cwd and target file name.
     let current_path = current_file.parent()?;
     let current_file_stem = current_file.file_stem()?.to_str()?;
