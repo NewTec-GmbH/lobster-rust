@@ -1,64 +1,62 @@
-use std::fs::{self, File};
-use std::io::BufWriter;
-use location::{NodeLocation, FileReference};
-use ra_ap_syntax::{AstNode, SourceFile};
-use ra_ap_edition::Edition;
-use json::{object::Object, JsonValue};
-use visitor::{RustVisitor, Visitor};
+//! lobster-rust tool to prodce lobster common interchange format from a rust project.
+
 use clap::Parser;
+use json::{object::Object, JsonValue};
+use location::{FileReference, NodeLocation};
+use std::fs::File;
+use std::io::BufWriter;
+use std::path::Path;
+use visitor::RustVisitor;
 
 mod location;
-mod visitor;
-mod traceable_node;
 mod syntax_extensions;
+mod traceable_node;
 mod utils;
+mod visitor;
 
+/// Entry function of the tool.
+///
+/// This function defines the general workflow of lobste-rust.
+/// First the CLI args are parsed  and the first visitor is created and started accordingly.
+/// This visitor is expected to start module visitors for every resolved module inlusion by itself.
+/// Afterwards all parsed information is combined into the lobster common interchange format.
 fn main() {
+    // Parse command line interface arguments.
     let args = args::Cli::parse();
 
-    let mut filename;
+    // Determine entry file filename (lib.rs instead of main.rs if --lib flag is set).
+    let filename;
     if args.lib {
-        filename = "lib.rs".to_string();
+        filename = Path::new("lib.rs");
     } else {
-        filename = "main.rs".to_string();
+        filename = Path::new("main.rs");
     }
+    let filepath = Path::new(&args.dir).join(filename);
 
-    filename.insert_str(0, &args.dir);
+    // Create and run visitor on entry file.
+    let mut visitor = RustVisitor::new(filepath, "".to_string());
+    visitor.parse_file();
 
-    let text: String;
-    match fs::read_to_string(&filename) {
-        Ok(t) => text = t,
-        Err(e) => panic!("File: {}\n{}", &filename, e),
-    }
-    let parse = SourceFile::parse(&text, Edition::Edition2024);
-    let tree: SourceFile = parse.tree();
-    let root_node = tree.syntax();
+    // Get root node of entry file and other modules in the project.
+    let modules = visitor.get_traceable_nodes();
 
-    let mut visitor = RustVisitor::new(filename);
-
-    visitor.travel(&root_node);
-
-    let module = visitor.vdata.get_root_mut().unwrap();
-    
+    // Convert parsed modules to lobster common interchange format.
     let mut data: Vec<JsonValue> = Vec::new();
-    module.to_lobster(&mut data);
+    for module in modules {
+        module.to_lobster(&mut data);
+    }
 
-    // add data
+    // Combine parsed data and fixed information to full lobster common interchange format output.
     let mut jout = JsonValue::Object(Object::new());
     let _ = jout.insert("data", data);
     let _ = jout.insert("generator", "lobster-rust");
     let _ = jout.insert("schema", "lobster-imp-trace");
     let _ = jout.insert("version", 3);
 
-    // write json to output file
-    let outfile: String;
-    if let Some(outarg) = args.out {
-        outfile = outarg;
-    } else {
-        outfile = "rust.lobster".to_string();
-    }
+    // Write lobster common interchange format to output file.
+    let outfile: &Path = Path::new(&args.out);
     match File::create(&outfile) {
-        Err(e) => panic!("Outfile: {}\n{}", &outfile, e),
+        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
         Ok(outfile) => {
             let mut outwriter = BufWriter::new(outfile);
             let _ = jout.write_pretty(&mut outwriter, 4);
@@ -66,41 +64,31 @@ fn main() {
     }
 }
 
-struct _Teststruct {
-    // lobster-trace: TEST.struct
-    testfield: u32
-}
-
-impl _Teststruct {
-    fn _increase(&mut self) {
-        // lobster-trace: TEST.method
-        self.testfield += 1;
-    }
-}
-
+/// Submodule to define the tools CLI.
 #[allow(unused_parens)]
 mod args {
     use clap::Parser;
     #[derive(Parser)]
     #[command(version, about, long_about = None)]
     pub(super) struct Cli {
-        /// Directory of main.rs (or lib.rs)
+        /// Directory of main.rs (or lib.rs).
         #[arg(default_value_t = ("./src/".to_string()))]
         pub(super) dir: String,
 
-        /// Output directory for the .lobster file
-        pub(super) out: Option<String>,
+        /// Output file for the lobster common interchange format output.
+        #[arg(default_value_t = ("rust.lobster".to_string()))]
+        pub(super) out: String,
 
-        /// Parse lib.rs as project root instead of main.rs
+        /// Parse lib.rs as project root instead of main.rs.
         #[arg(short, long)]
         pub(super) lib: bool,
 
-        /// Generate activity traces (tests) instead of an implementation trace. UNSUPPORTED
+        /// Generate activity traces (tests) instead of an implementation trace. UNSUPPORTED.
         #[arg(long)]
         pub(super) activity: bool,
 
-        /// Only trace functions with tags
+        /// Only trace functions with tags. UNSUPPORTED.
         #[arg(long)]
-        pub(super) only_tagged_functions: bool
+        pub(super) only_tagged_functions: bool,
     }
 }

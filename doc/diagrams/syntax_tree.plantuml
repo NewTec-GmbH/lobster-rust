@@ -1,0 +1,20 @@
+@startuml syntax tree
+
+component SyntaxNode as root
+component SyntaxNode as c1
+component SyntaxNode as c2
+component SyntaxNode as cc1
+component SyntaxToken as cc2
+component SyntaxToken as cc3
+
+note left of root
+root node of the syntax tree.
+end note
+
+root .. c1
+root .. c2
+c1 .. cc1
+c1 .. cc2
+c2 .. cc3
+
+@enduml

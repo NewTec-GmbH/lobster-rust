@@ -1,0 +1,82 @@
+@startuml lobster-rust context
+
+left to right direction
+skinparam linetype ortho
+skinparam component {
+    BackgroundColor #lightgreen
+}
+
+component "lobster-trlc" as lobsterTrlc<<tool>>
+component "lobster-rust" as lobsterRust<<tool>>
+component "lobster-report" as lobsterReport<<tool>>
+component "lobster-html-report" as lobsterHtmlReport<<tool>>
+file "lobster-trlc.conf" as lobsterTrlcConf<<config>>
+file "trlc.lobster" as trlcLobsterFile
+file "Source file(s)\n(*.trlc)" as sourceFiles
+file "Model(s)\n(*.rls)" as modelFiles
+file "Rust file(s)\n(*.rs)" as rustFiles
+file "rust.lobster" as rustLobsterFile
+file "report.lobster" as reportLobsterFile
+file "lobster.conf" as lobsterConf
+file "tracing_report.html" as tracingReportHtml
+
+lobsterTrlc ..> trlcLobsterFile: <<create>>
+
+lobsterTrlcConf ..> lobsterTrlc: <<flow>>
+
+sourceFiles ..> lobsterTrlc: <<flow>>
+modelFiles ..> lobsterTrlc: <<flow>>
+
+rustFiles ..> lobsterRust: <<flow>>
+lobsterRust ..> rustLobsterFile: <<create>>
+
+lobsterConf ..> lobsterReport: <<flow>>
+lobsterReport  .> reportLobsterFile: <<create>>
+
+trlcLobsterFile <.. lobsterConf: <<trace>>
+rustLobsterFile <.. lobsterConf: <<trace>>
+
+reportLobsterFile .> lobsterHtmlReport: <<flow>>
+
+lobsterHtmlReport .> tracingReportHtml: <<create>>
+
+
+note left of lobsterTrlcConf
+    Defines which attributes shall be taken over
+    into the report from the sources (*.trlc).
+end note
+
+note bottom of rustLobsterFile
+    Common interchange format.
+end note
+
+note top of lobsterConf
+    Tracing policy.
+end note
+
+note top of trlcLobsterFile
+    Common interchange format.
+end note
+
+note left of sourceFiles
+    The requirements written in TRLC.
+end note
+
+note left of modelFiles
+    The requirements language specification.
+end note
+
+note left of rustFiles
+    The implementation of the program which
+    contains the lobster traces.
+end note
+
+note bottom of reportLobsterFile
+    Common interchange format.
+end note
+
+note left of tracingReportHtml
+    The user friendly HTML report.
+end note
+
+@enduml
