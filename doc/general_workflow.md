@@ -11,11 +11,11 @@ fn main() {
 
 via the ra_ap_syntax cratee &rarr; syntax tree
 
-![syntax tree](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/syntax_tree.plantuml)
+![syntax tree](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/diagrams/syntax_tree.plantuml)
 
 via the RustVisitor &rarr; trace tree
 
-![trace tree](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/trace_tree.plantuml)
+![trace tree](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/diagrams/trace_tree.plantuml)
 
 This trace tree contains significantly less data than the Syntax tree.
 Each node contains the data needed to represent itself in the lobster common nterchange format.
