@@ -108,7 +108,7 @@ impl RustVisitor {
     ///
     /// ### Parameters
     /// * `filepath` - Path to the file the visitor shall parse.
-    ///* `context` - Default context for the visitor, will be prepended to parsed names and tags. */
+    /// * `context` - Default context for the visitor, will be prepended to parsed names and tags. */
     ///
     /// ### Returns
     /// A Rustvisitor for the given file.
