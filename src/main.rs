@@ -75,7 +75,7 @@ mod args {
         #[arg(default_value_t = ("./src/".to_string()))]
         pub(super) dir: String,
 
-        /// Output directory for the .lobster file.
+        /// Output file for the lobster common interchange format output.
         #[arg(default_value_t = ("rust.lobster".to_string()))]
         pub(super) out: String,
 

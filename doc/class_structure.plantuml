@@ -1,4 +1,7 @@
 @startuml lobster-rust-classes
+
+skinparam linetype ortho
+
 package ra_ap_syntax {
     enum SyntaxElement {
         Node: SyntaxNode
@@ -13,8 +16,23 @@ note top of ra_ap_syntax
 From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file.
 end note
 
+note left of SyntaxElement
+Wrapper for either a SyntaxNode or a SyntaxToken.
+end note
+
 SyntaxElement *-- SyntaxNode
 SyntaxElement *-- SyntaxToken
+
+interface Searchable {
+    get_child_kind()
+    get_children_kind()
+    get_tokens_kind()
+}
+
+SyntaxElement .right.|> Searchable
+SyntaxNode .right.|> Searchable
+
+RustVisitor .. Searchable
 
 interface Visitable {
     {abstract} visit(visitor: Visitor)
@@ -30,23 +48,7 @@ SyntaxElement ..|> Visitable
 SyntaxNode ..|> Visitable
 SyntaxToken ..|> Visitable
 
-package syntax_extensions {
-    interface Searchable {
-        get_child_kind()
-        get_children_kind()
-        get_tokens_kind()
-    }
-}
 
-note bottom of syntax_extensions
-From the rust-analyzer crate ra_ap_syntax.\nrust-analyzer code is used to parse the syntax tree from the soure file.
-end note
-
-SearchNote ... syntax_extensions
-RustVisitor ... syntax_extensions
-
-SyntaxElement --|> Searchable
-SyntaxNode --|> Searchable
 
 interface Visitor {
     {abstract} node_enter(node: SyntaxNode)
@@ -58,8 +60,10 @@ interface Visitor {
 Visitable .right. Visitor
 
 class RustVisitor {
-    filename: String
+    filepath: String
+    default_context: String
     vdata: VisitorData
+    module_visitors: RustVisitor
     node_enter(node: SyntaxNode)
     node_exit(node: SyntaxNode)
     token_visit(token: SyntaxToken)
@@ -74,6 +78,7 @@ depending on the kind of SyntaxNodes and SyntaxTokens encountered in the tree.
 end note
 
 RustVisitor ..|> Visitor
+RustVisitor o-- "*" RustVisitor
 
 class VisitorData {
     ws_data: WhitespaceData
@@ -85,7 +90,7 @@ The node_stack is used to provide context information for nodes being parsed.
 It also allows building of a new trace tree of RustTraceableNodes by appending finished nodes as children of their parents.
 end note
 
-RustVisitor *- "1" VisitorData
+RustVisitor *--- "1" VisitorData
 
 class WhitespaceData {
     current_line: usize
@@ -116,7 +121,7 @@ class RustTraceableNode {
     children[]: RustTraceableNode
     just[]: String
     refs[]: String
-    impl_data: Option<ImplementationData>
+    impl_data: Option<ContextData>
 
     to_lobster()
     from_node(node: SyntaxNode) -> Self
@@ -134,12 +139,12 @@ end note
 
 RustTraceableNode o-- "*" RustTraceableNode
 
-class ImplementationData {
-    target: String,
+class ContextData {
+    namespace: String,
     trait_imp: Option<String>
 }
 
-RustTraceableNode --o "0..1" ImplementationData
+RustTraceableNode o--- "0..1" ContextData
 
 enum NodeLocation {
     File: FileReference
@@ -168,13 +173,15 @@ RustTraceableNode *-- "1" NodeLocation
 package json {
     class JsonValue {
         from(RustTraceableNode) -> Self
+        from(NodeLocation) -> Self
     }
 }
 
 RustTraceableNode .. JsonValue
+NodeLocation .. JsonValue
 
-note "From json crate." as JsonNote
-
-JsonNote .. json
+note right of json
+From json crate.
+end note
 
 @enduml
