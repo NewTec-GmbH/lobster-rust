@@ -9,11 +9,11 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::{
+    location::FileReference,
     syntax_extensions::{Searchable, Visitable},
     traceable_node::{NodeKind, RustTraceableNode},
     utils::extract_path_attr::extract_path_attribute,
     utils::module_resolution::resolve_module_declaration,
-    NodeLocation,
 };
 
 /// Visitor trait
@@ -251,7 +251,7 @@ impl RustVisitor {
         } else {
             prefix = self.default_context.clone() + "." + &self.get_filename();
         }
-        let location = NodeLocation::from(filepath, Some(line), Some(col));
+        let location = FileReference::new(filepath, Some(line), Some(col));
 
         // Check for enclosing context.
         if let Some(context_prefix) = self.get_enclosing_context() {
@@ -311,7 +311,7 @@ impl RustVisitor {
         } else {
             prefix = self.default_context.clone() + "." + &self.get_filename();
         }
-        let location = NodeLocation::from(filepath, Some(line), Some(col));
+        let location = FileReference::new(filepath, Some(line), Some(col));
 
         // Check for enclosing context.
         if let Some(context_prefix) = self.get_enclosing_context() {
