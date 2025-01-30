@@ -101,6 +101,7 @@ impl RustTraceableNode {
         if let Some(node_kind) = syntax_kind_to_node_kind(node.kind()) {
             match node_kind {
                 NodeKind::Function => {
+                    // lobster-trace: LobsterRust.item_name
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
                     let name = prefix + "." + &name_node.text().to_string();
                     Some(RustTraceableNode::new(name, location, node_kind))
@@ -111,12 +112,15 @@ impl RustTraceableNode {
                     node_kind,
                 )),
                 NodeKind::Struct => {
+                    // lobster-trace: LobsterRust.item_name
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
                     let name = prefix + "." + &name_node.text().to_string();
                     Some(RustTraceableNode::new(name, location, node_kind))
                 }
                 NodeKind::Context => match node.kind() {
                     // IMPL and MODULE node conversion are done in separate functions to keep code simpler.
+                    // lobster-trace: LobsterRust.item_name
+                    // lobster-trace: LobsterRust.method_names
                     SyntaxKind::IMPL => RustTraceableNode::from_impl_node(node),
                     SyntaxKind::MODULE => RustTraceableNode::from_module_node(node),
                     _ => None,
@@ -243,6 +247,7 @@ impl RustTraceableNode {
     /// ### Parameters
     /// * `items` - Vector of already converted items, new converted items will be appended.
     pub(crate) fn to_lobster(&self, items: &mut Vec<JsonValue>) {
+        // lobster-trace: LobsterRust.traceable_node_output
         match self.kind {
             NodeKind::Source => {
                 for child in &self.children {
@@ -295,7 +300,7 @@ impl From<&RustTraceableNode> for JsonValue {
     ///
     /// ### Returns Json object holding the RTN data in lobser common interchange format.
     fn from(node: &RustTraceableNode) -> JsonValue {
-        // idk if we really want to do this
+        // lobster-trace: LobsterRust.lobster_common_interchange_format
         let mut json_out = JsonValue::Object(Object::new());
         let _ = json_out.insert("tag", format!("rust {}", node.name));
         let _ = json_out.insert("name", format!("{}", node.name));

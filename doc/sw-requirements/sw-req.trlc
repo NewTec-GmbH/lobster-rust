@@ -15,7 +15,7 @@ section "lobster-rust" {
         section "Command Line Arguments" {
 
             SwReq positional_arguments {
-                description = "The software shall read the optional positional algrument 'dir' and treat is as a String."
+                description = "The software shall read the optional positional arguument 'dir' and treat is as a String. If dir is not provided, './src/' shall be chosen as a default."
                 verification_proposal = "CLI tests"
                 info = "The current working directory will be chosen as a default if no dir argument is provided."
             }
@@ -33,12 +33,88 @@ section "lobster-rust" {
 
         }
 
+        section "Source Code Parsing" {
+
+            SwReq entry_module {
+                description = "The software shall start parsing with the main.rs module in the 'dir' path if the '--lib' flag is not set. If the flag is set, it shall start parsing with the lib.rs module."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq module_declaration {
+                description = "The software shall resolve all parsed module declarations to a source file and parse this source file."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq module_parsing {
+                description = "The software shall parse all structs and functions (items) in the code into traceable nodes."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq item_name {
+                description = "The software shall set the name for traceable nodes as their nested modules plus the item name separated by '.'"
+                verification_proposal = "Unit test"
+            }
+
+            SwReq method_names {
+                description = "The software shall prepend the function name with the struct name, if a function is a structs method."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq item_location {
+                description = "The software shall set the location for traceable nodes to their source file, line number and column number."
+                verification_proposal = "Unit test"
+            }
+
+        }
+
         section "Requirement Tracing" {
+
+            SwReq tracing_comments {
+                description = '''The software shall register any comment text containing "lobster-trace:" as a tracing tag and the text following the colon as the target requirement.'''
+                verification_proposal = "Unit test"
+            }
+
+            SwReq tracing_justifications {
+                description = '''The software shall register any comment text containing "lobster-exclude:" as a tracing justification and the text following the colon as the argumentation.'''
+                verification_proposal = "Unit test"
+            }
+
+            SwReq item_tracing {
+                description = '''The software shall add all tracing tags parsed in an item body or preceding comment to the corresponding traceable nodes references.'''
+                verification_proposal = "Unit test"
+            }
+
+            SwReq item_justification {
+                description = '''The software shall add all tracing justifications parsed in an item body or preceding comment to the corresponding traceable nodes justifications.'''
+                verification_proposal = "Unit test"
+            }
             
         }
 
-        section "Output Format" {
+        section "Output" {
 
+            SwReq output_file {
+                description = "The software shall write its output to the path pointed to by the --out argument."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq lobster_common_interchange_format {
+                description = "The software shall write its output in the lobster common interchange format."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq traceable_node_output {
+                desciption = "The software shall convert and write each traceable node gathered while parsing as a data item into the output."
+                verification_proposal = "Unit test"
+            }
+
+            SwReq default_output {
+                description = '''The software shall set following output fields to the fixed values:
+                    "generator" to "lobster-rust",
+                    "schema" to "lobster-imp-trace",
+                    "version" to 3'''
+                verification_proposal = "Unit test"
+            }
         }
 
     }

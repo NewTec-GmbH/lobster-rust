@@ -233,7 +233,10 @@ impl RustVisitor {
     /// ### Parameters
     /// * `fn_node` - SyntaxNode of kind FN.
     fn enter_fn(&mut self, fn_node: &SyntaxNode) {
+        // lobster-trace: LobsterRust.module_parsing
+
         // Calculate position in file.
+        // lobster-trace: LobsterRust.item_location
         let (line, col): (usize, usize);
         if let Some(fn_kw_token) = fn_node.get_tokens_kind(SyntaxKind::FN_KW).pop() {
             (line, col) = self
@@ -293,7 +296,10 @@ impl RustVisitor {
     /// ### Parameters
     /// * `struct_node` - SyntaxNode of kind STRUCT.
     fn enter_struct(&mut self, struct_node: &SyntaxNode) {
+        // lobster-trace: LobsterRust.module_parsing
+
         // Calculate position in file.
+        // lobster-trace: LobsterRust.item_location
         let (line, col): (usize, usize);
         if let Some(struct_kw_token) = struct_node.get_tokens_kind(SyntaxKind::STRUCT_KW).pop() {
             (line, col) = self
@@ -386,6 +392,7 @@ impl RustVisitor {
             NodeOrToken::Token(t) => {
                 if t.kind() == SyntaxKind::SEMICOLON {
                     // Found module declaration. Resolve to corresponding file.
+                    // lobster-trace: LobsterRust.module_declaration
                     let attrs = mod_node.get_children_kind(SyntaxKind::ATTR);
                     let path_attributes: Vec<PathBuf> = attrs
                         .iter()
@@ -495,7 +502,9 @@ impl RustVisitor {
     fn visit_comment(&mut self, comment_token: &SyntaxToken) {
         // Parse comment for lobster trace or justification annotations
         if let Some(cnode) = self.vdata.node_stack.last_mut() {
+            // lobster-trace: LobsterRust.tracing_comments
             let trace_re = Regex::new(r"///?.*lobster-trace: (?<ref>[[:alnum:]\._-]+).*").unwrap();
+            // lobster-trace: LobsterRust.tracing_justifications
             let just_re =
                 Regex::new(r"///?.*lobster-exclude: (?<just>[[:alnum:]\._-]+).*").unwrap();
 
@@ -503,12 +512,14 @@ impl RustVisitor {
                 if let Some(refmatch) = cap.name("ref") {
                     let mut refstring = refmatch.as_str().to_string();
                     refstring.insert_str(0, "req ");
+                    // lobster-trace: LobsterRust.item_tracing
                     cnode.refs.push(refstring);
                 }
             }
             if let Some(cap) = just_re.captures(comment_token.text()) {
                 if let Some(justmatch) = cap.name("just") {
                     let juststring = justmatch.as_str().to_string();
+                    // lobster-trace: LobsterRust.item_justification
                     cnode.just.push(juststring);
                 }
             }
