@@ -66,13 +66,16 @@ fn main() {
     // Convert parsed modules to lobster common interchange format.
     let data: Vec<JsonValue> = modules.iter().flat_map(|m| m.to_lobster()).collect();
 
+    // lobster-trace: LobsterRust.lobster_common_interchange_format
     let mut jout = JsonValue::Object(Object::new());
     let _ = jout.insert("data", data);
+    // lobster-trace: LobsterRust.default_output
     let _ = jout.insert("generator", "lobster-rust");
     let _ = jout.insert("schema", "lobster-imp-trace");
     let _ = jout.insert("version", 3);
 
     // Write lobster common interchange format to output file.
+    // lobster-trace: LobsterRust.output_file
     let outfile: &Path = Path::new(&args.out);
     match File::create(outfile) {
         // Panic if we cant write the results. Print error details.

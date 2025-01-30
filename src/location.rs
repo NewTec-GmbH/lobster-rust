@@ -105,6 +105,7 @@ impl From<&FileReference> for JsonValue {
     ///
     /// ### Returns Json object holding the location data in lobser common interchange format.
     fn from(reference: &FileReference) -> Self {
+        // lobster-trace: LobsterRust.lobster_common_interchange_format
         let mut location_json = JsonValue::Object(Object::new());
         let _ = location_json.insert("kind", "file");
         let _ = location_json.insert("file", reference.filename.clone());
