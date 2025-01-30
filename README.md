@@ -3,9 +3,9 @@
 [![License](https://img.shields.io/badge/License-BSD-3.svg)](https://github.com/NewTec-GmbH/lobster-rust/blob/main/LICENSE)
 [![Repo Status](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
-Rust tool to process rust projects for BMWs [lobster](https://github.com/bmw-software-engineering/lobster).
+Rust tool to process Rust projects for BMWs [lobster](https://github.com/bmw-software-engineering/lobster).
 
-This tool processes rust source code with lobster annotations into the lobster intermediate format.
+This tool processes Rust source code with lobster annotations / tracing tags into the lobster common interchange format.
 
 **!!!** lobster-rust is currently in development and does not meet the feature set and maturity of the lobster tools for languages like python or C++. To get an overview of the current state and feature set, check out the issues tab **!!!**
 
