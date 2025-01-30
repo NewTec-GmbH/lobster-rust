@@ -4,7 +4,7 @@ use json::{object::Object, JsonValue};
 use ra_ap_syntax::{SyntaxKind, SyntaxNode};
 use std::fmt::Display;
 
-use crate::{syntax_extensions::Searchable, FileReference, NodeLocation};
+use crate::{location::FileReference, syntax_extensions::Searchable};
 
 /// Enum to define the different kinds of RustTraceableNodes.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -47,8 +47,8 @@ pub(crate) struct RustTraceableNode {
     pub(crate) name: String,
     /// The kind of the node.
     pub(crate) kind: NodeKind,
-    /// The location of the node. (Wraps a FileReference or GithubReference.)
-    pub(crate) location: NodeLocation,
+    /// The location of the node.
+    pub(crate) location: FileReference,
     /// Children of the node.
     pub(crate) children: Vec<RustTraceableNode>,
     /// Parsed justifications.
@@ -71,7 +71,7 @@ impl RustTraceableNode {
     ///
     /// ### Returns
     /// A RustTraceableNode.
-    fn new(name: String, location: NodeLocation, kind: NodeKind) -> RustTraceableNode {
+    fn new(name: String, location: FileReference, kind: NodeKind) -> RustTraceableNode {
         RustTraceableNode {
             name,
             kind,
@@ -103,25 +103,17 @@ impl RustTraceableNode {
                 NodeKind::Function => {
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
                     let name = prefix + "." + &name_node.text().to_string();
-                    Some(RustTraceableNode::new(
-                        name,
-                        NodeLocation::File(location),
-                        node_kind,
-                    ))
+                    Some(RustTraceableNode::new(name, location, node_kind))
                 }
                 NodeKind::Source => Some(RustTraceableNode::new(
                     "FILE".to_string(),
-                    NodeLocation::File(location),
+                    location,
                     node_kind,
                 )),
                 NodeKind::Struct => {
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
                     let name = prefix + "." + &name_node.text().to_string();
-                    Some(RustTraceableNode::new(
-                        name,
-                        NodeLocation::File(location),
-                        node_kind,
-                    ))
+                    Some(RustTraceableNode::new(name, location, node_kind))
                 }
                 NodeKind::Context => match node.kind() {
                     // IMPL and MODULE node conversion are done in separate functions to keep code simpler.
@@ -165,7 +157,7 @@ impl RustTraceableNode {
                 let impl_data = ContextData::new(structref, Some(traitref));
                 let mut new_node = RustTraceableNode::new(
                     "Impl".to_string(),
-                    NodeLocation::File(FileReference::new_default()),
+                    FileReference::new_default(),
                     NodeKind::Context,
                 );
                 new_node.context_data = Some(impl_data);
@@ -177,7 +169,7 @@ impl RustTraceableNode {
             let impl_data = ContextData::new(structref, None);
             let mut new_node = RustTraceableNode::new(
                 "Impl".to_string(),
-                NodeLocation::File(FileReference::new_default()),
+                FileReference::new_default(),
                 NodeKind::Context,
             );
             new_node.context_data = Some(impl_data);
@@ -202,7 +194,7 @@ impl RustTraceableNode {
         let name_node = node.get_child_kind(SyntaxKind::NAME).unwrap();
         let mut new_node = RustTraceableNode::new(
             name_node.text().to_string(),
-            NodeLocation::File(FileReference::new_default()),
+            FileReference::new_default(),
             NodeKind::Context,
         );
         let context = ContextData::new(name_node.text().to_string(), None);
@@ -217,14 +209,14 @@ impl RustTraceableNode {
     ///
     /// ### Parameters
     /// * `node` - SyntaxNode that should be parsed to a corresponding RTN.
-    /// * `location` - NodeLocation for the new RTN.
+    /// * `location` - FileReference for the new RTN.
     /// * `prefix` - Prefix String to prepend to name and tag.
     ///
     /// ### Returns
     /// Some RustTraceableNode if parsing was sucessful, None otherwise.
     pub(crate) fn from_node_with_location(
         node: &SyntaxNode,
-        location: NodeLocation,
+        location: FileReference,
         prefix: String,
     ) -> Option<Self> {
         let mut new_node = Self::from_node(node, prefix);

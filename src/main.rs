@@ -2,7 +2,6 @@
 
 use clap::Parser;
 use json::{object::Object, JsonValue};
-use location::{FileReference, NodeLocation};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
