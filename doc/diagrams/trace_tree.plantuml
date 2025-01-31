@@ -1,0 +1,16 @@
+@startuml trace tree
+
+component RustTraceableNode as root
+component RustTraceableNode as c1
+component RustTraceableNode as c2
+component RustTraceableNode as cc1
+
+note left of root
+root node of the trace tree.
+end note
+
+root .. c1
+root .. c2
+c1 .. cc1
+
+@enduml
