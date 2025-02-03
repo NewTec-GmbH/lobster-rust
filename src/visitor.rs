@@ -12,6 +12,7 @@ use crate::{
     location::FileReference,
     syntax_extensions::{Searchable, Visitable},
     traceable_node::{NodeKind, RustTraceableNode},
+    utils::context::Context,
     utils::extract_path_attr::extract_path_attribute,
     utils::module_resolution::resolve_module_declaration,
 };
@@ -93,7 +94,7 @@ pub(crate) struct RustVisitor {
     /// Filepath to the source file (.rs) the visitor is parsing.
     filepath: PathBuf,
     /// Context String that is prepended to any tags and names found in this file.
-    default_context: String,
+    default_context: Context,
     /// Visitor data to track the visitors internal state while traversing the SyntaxTree.
     vdata: VisitorData,
     /// Other visitors that are used to visit files that were included via module declarations in this visitors source file.
@@ -112,7 +113,7 @@ impl RustVisitor {
     ///
     /// ### Returns
     /// A Rustvisitor for the given file.
-    pub(crate) fn new(filepath: PathBuf, context: String) -> Self {
+    pub(crate) fn new(filepath: PathBuf, context: Context) -> Self {
         RustVisitor {
             filepath,
             default_context: context,
@@ -127,29 +128,29 @@ impl RustVisitor {
         }
     }
 
-    /// Builds a context from any enclosing nodes on the stack.
+    /// Builds a Context from any enclosing nodes on the stack.
     ///
     /// Traverses the stack to find context nodes that hold context data.
-    /// Combines the namespaces of the context data into one context String.
+    /// Combines the Contexts of the context data into one Context.
     ///
     /// ### Returns
-    /// Some context string if any enclosing nodes hold context data, otherwise None.
-    fn get_enclosing_context(&self) -> Option<String> {
+    /// context as a combination of all enclosing Contexts.
+    fn get_enclosing_context(&self) -> Context {
         // Get reference to the implementation data of the latest Impl node.
-        let nested_in: Vec<String> = self
+        let nested_in: Vec<&Context> = self
             .vdata
             .node_stack
             .iter()
             .filter(|n| NodeKind::Context == n.kind)
             .map(|rtn| rtn.context_data.as_ref())
             .flatten()
-            .map(|context_data| context_data.namespace.clone())
+            .map(|context_data| &context_data.context)
             .collect();
 
         if nested_in.len() > 0 {
-            Some(nested_in.join("."))
+            nested_in.into_iter().sum()
         } else {
-            None
+            Context::Empty
         }
     }
 
@@ -243,24 +244,14 @@ impl RustVisitor {
         } else {
             (line, col) = (self.vdata.whitespace_data.current_line, 0);
         }
-        // Get default context + filepath as prefix.
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix;
-        if self.default_context.is_empty() {
-            prefix = self.get_filename();
-        } else {
-            prefix = self.default_context.clone() + "." + &self.get_filename();
-        }
         let location = FileReference::new(filepath, Some(line), Some(col));
 
         // Check for enclosing context.
-        if let Some(context_prefix) = self.get_enclosing_context() {
-            prefix += ".";
-            prefix += &context_prefix;
-        }
+        let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(fn_node, location, prefix)
+        let node = RustTraceableNode::from_node_with_location(fn_node, location, context.to_str())
             .unwrap_or_else(|| {
                 panic!(
                     "Could not parse fn at line {:#?}.",
@@ -305,22 +296,14 @@ impl RustVisitor {
         }
         // Get default context + filepath as prefix.
         let filepath = self.vdata.get_root().unwrap().name.clone();
-        let mut prefix;
-        if self.default_context.is_empty() {
-            prefix = self.get_filename();
-        } else {
-            prefix = self.default_context.clone() + "." + &self.get_filename();
-        }
         let location = FileReference::new(filepath, Some(line), Some(col));
 
         // Check for enclosing context.
-        if let Some(context_prefix) = self.get_enclosing_context() {
-            prefix += ".";
-            prefix += &context_prefix;
-        }
+        let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(struct_node, location, prefix)
+        let node =
+            RustTraceableNode::from_node_with_location(struct_node, location, context.to_str())
             .unwrap_or_else(|| {
                 panic!(
                     "Could not parse struct at line {:#?}.",
@@ -397,7 +380,7 @@ impl RustVisitor {
                         // Resolve the path given by the path attribute.
                         self.module_visitors.push(RustVisitor::new(
                             self.filepath.parent().unwrap().join(module_path),
-                            "".to_string(),
+                            Context::Empty, // This is not correct, need to resolve a Context from the path.
                         ));
                     } else {
                         // Follow the standard module declaration resolution.
@@ -405,16 +388,7 @@ impl RustVisitor {
                             &self.filepath,
                             &name_node.text().to_string(),
                         ) {
-                            let nested_context;
-                            if context.is_empty() {
-                                nested_context = self.default_context.clone()
-                            } else {
-                                if self.default_context.is_empty() {
-                                    nested_context = context;
-                                } else {
-                                    nested_context = self.default_context.clone() + "." + &context;
-                                }
-                            }
+                            let nested_context = &self.default_context + context;
                             self.module_visitors
                                 .push(RustVisitor::new(modpath, nested_context));
                         }

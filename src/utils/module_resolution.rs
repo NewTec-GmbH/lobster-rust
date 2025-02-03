@@ -1,3 +1,4 @@
+use crate::utils::context::Context;
 use std::fs::{self, DirEntry};
 use std::path::{Path, PathBuf};
 
@@ -13,12 +14,12 @@ use std::path::{Path, PathBuf};
 /// * `target_name` - Module name (The module name specified after the ```mod``` keyword).
 ///
 /// ### Returns
-/// Some(PathBuf, String) if the module could be resolved to a path. The String contains the additional context info.
+/// Some(PathBuf, Context) if the module could be resolved to a path.
 ///
 pub(crate) fn resolve_module_declaration(
     current_file: &Path,
     target_name: &str,
-) -> Option<(PathBuf, String)> {
+) -> Option<(PathBuf, Context)> {
     // Get cwd and target file name.
     let current_path = current_file.parent()?;
     let current_file_stem = current_file.file_stem()?.to_str()?;
@@ -37,7 +38,7 @@ pub(crate) fn resolve_module_declaration(
             if let Some(file_name) = directory_entry.path().file_name() {
                 if &file_target == file_name.to_str().unwrap() {
                     // Return path to target_name.rs
-                    return Some((directory_entry.path(), String::new()));
+                    return Some((directory_entry.path(), Context::Empty));
                 }
             }
         }
@@ -54,14 +55,11 @@ pub(crate) fn resolve_module_declaration(
                 for subdirectory_entry in subdirectory_content {
                     if let Some(file_name) = subdirectory_entry.path().file_name() {
                         if "mod.rs" == file_name.to_str().unwrap() {
-                            let context_string = directory_entry
-                                .path()
-                                .file_name()
-                                .unwrap()
-                                .to_string_lossy()
-                                .to_string();
                             // Return path to mod.rs.
-                            return Some((subdirectory_entry.path(), context_string));
+                            return Some((
+                                subdirectory_entry.path(),
+                                Context::from_str(target_name),
+                            ));
                         }
                     }
                 }
@@ -86,7 +84,7 @@ pub(crate) fn resolve_module_declaration(
                             // Return path to nested target_name.rs
                             return Some((
                                 subdirectory_entry.path(),
-                                current_file_stem.to_string(),
+                                Context::from_str(current_file_stem),
                             ));
                         }
                     }
@@ -118,11 +116,12 @@ pub(crate) fn resolve_module_declaration(
                         for subsubdirectory_entry in subsubdirectory_content {
                             if let Some(file_name) = subdirectory_entry.path().file_name() {
                                 if "mod.rs" == file_name.to_str().unwrap() {
-                                    // Build context string from sub and subsub directories.
-                                    let context_string =
-                                        current_file_stem.to_string() + "." + target_name;
                                     // Return path to nested mod.rs
-                                    return Some((subsubdirectory_entry.path(), context_string));
+                                    return Some((
+                                        subsubdirectory_entry.path(),
+                                        Context::from_str(current_file_stem)
+                                            + Context::from_str(target_name),
+                                    ));
                                 }
                             }
                         }

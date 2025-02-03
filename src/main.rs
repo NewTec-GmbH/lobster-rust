@@ -5,6 +5,7 @@ use json::{object::Object, JsonValue};
 use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
+use utils::context::Context;
 use visitor::RustVisitor;
 
 mod location;
@@ -33,7 +34,7 @@ fn main() {
     let filepath = Path::new(&args.dir).join(filename);
 
     // Create and run visitor on entry file.
-    let mut visitor = RustVisitor::new(filepath, "".to_string());
+    let mut visitor = RustVisitor::new(filepath, Context::Empty);
     visitor.parse_file();
 
     // Get root node of entry file and other modules in the project.
