@@ -7,16 +7,16 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 //
-// 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer.
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+//    and the following disclaimer.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+//    conditions and the following disclaimer in the documentation and/or other materials provided
+//    with the distribution.
 //
-// 3. Neither the name of the copyright holder nor the names of its
-//    contributors may be used to endorse or promote products derived from
-//    this software without specific prior written permission.
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+//    endorse or promote products derived from this software without specific prior written
+//    permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -42,12 +42,12 @@ use std::path::{Path, PathBuf};
 /// Additionally builds a context string if the module could be resolved to a path.
 ///
 /// ### Parameters
-/// * `current_file` - Path to the current file (where the module was declared via the ```mod``` keyword).
+/// * `current_file` - Path to the current file (where the module was declared via the ```mod```
+///   keyword).
 /// * `target_module_name` - Module name (The module name specified after the ```mod``` keyword).
 ///
 /// ### Returns
 /// Some(PathBuf, Context) if the module could be resolved to a path.
-///
 pub(crate) fn resolve_module_declaration(
     current_file: &Path,
     target_module_name: &str,
@@ -75,7 +75,8 @@ pub(crate) fn resolve_module_declaration(
         }
     } else {
         // For files other than main.rs, lib.rs or mod.rs,
-        // Rust tries to resolve the submodule in a subdirectory with the same name as the current file.
+        // Rust tries to resolve the submodule in a subdirectory with the same name as the current
+        // file.
         check_nested_submodule(
             &directory_content,
             &file_target,
@@ -87,8 +88,8 @@ pub(crate) fn resolve_module_declaration(
 
 /// Check for a file in the given directory contents with the module name.
 ///
-/// Searches the provided directory contents for a rust source file that would match the module name.
-/// If the file is found, a PathBuf to the found file and an empty Context are returned.
+/// Searches the provided directory contents for a rust source file that would match the module
+/// name. If the file is found, a PathBuf to the found file and an empty Context are returned.
 /// The Context is empty, as the file lies in the same directory and therefore the same Context.
 ///
 /// ### Parameters
@@ -112,7 +113,8 @@ fn check_file_module(
     None
 }
 
-/// Check for a directory in the given directory contents with the module name that contains a mod.rs.
+/// Check for a directory in the given directory contents with the module name that contains a
+/// mod.rs.
 ///
 /// Searches the provided directory contents for a directory that matches the module name.
 /// If the directory is found, it is checked to contain a mod.rs.
@@ -155,7 +157,8 @@ fn check_directory_module(
 /// Resolve a submodule.
 ///
 /// Searches the provided directory contents for a subdirectory that matches the current file name.
-/// This subdirectory is then searched for the target submodule, either as a file module or a directory module.
+/// This subdirectory is then searched for the target submodule, either as a file module or a
+/// directory module.
 ///
 /// ### Parameters
 /// * `directory_content` - Paths to contents of the current directory.
@@ -163,7 +166,8 @@ fn check_directory_module(
 /// * `target_module_name` - Directory name to search for to resolve the module.
 ///
 /// ### Returns
-/// Some(PathBuf, Context) if the module could be resolved to a source file or directory (with mod.rs).
+/// Some(PathBuf, Context) if the module could be resolved to a source file or directory (with
+/// mod.rs).
 fn check_nested_submodule(
     directory_content: &Vec<PathBuf>,
     file_target: &str,

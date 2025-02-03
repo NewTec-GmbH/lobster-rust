@@ -7,16 +7,16 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 //
-// 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer.
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+//    and the following disclaimer.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+//    conditions and the following disclaimer in the documentation and/or other materials provided
+//    with the distribution.
 //
-// 3. Neither the name of the copyright holder nor the names of its
-//    contributors may be used to endorse or promote products derived from
-//    this software without specific prior written permission.
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+//    endorse or promote products derived from this software without specific prior written
+//    permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -49,8 +49,9 @@ use crate::{
 /// Visitor trait
 ///
 /// Implementation of the Visitor trait is needed to visit structs implementing the Visitable trait.
-/// The methods node_enter, node_exit and token_visit have to be defined and function like callbacks while traversing a Visitable struct.
-/// The travel function will visit the root node given and recusively traverse the tree defined by it.
+/// The methods node_enter, node_exit and token_visit have to be defined and function like callbacks
+/// while traversing a Visitable struct. The travel function will visit the root node given and
+/// recusively traverse the tree defined by it.
 pub(crate) trait Visitor {
     fn node_enter(&mut self, node: &SyntaxNode);
     fn node_exit(&mut self, node: &SyntaxNode);
@@ -60,10 +61,11 @@ pub(crate) trait Visitor {
 
 /// Visitor data to hold the visitors mutable state.
 ///
-/// The visitor data includes whitespace data to keep track of the whitespace token information already parsed.
-/// The node stack is used to track nested nodes in the tree and allows inferring context information about enclosing nodes, while new nested nodes and
-/// tokens are being parsed. The node stack is also used to build a tree of RustTraceableNodes that can be accessed after the visitor is finished parsing by accessing the root node
-/// from the stack.
+/// The visitor data includes whitespace data to keep track of the whitespace token information
+/// already parsed. The node stack is used to track nested nodes in the tree and allows inferring
+/// context information about enclosing nodes, while new nested nodes and tokens are being parsed.
+/// The node stack is also used to build a tree of RustTraceableNodes that can be accessed after the
+/// visitor is finished parsing by accessing the root node from the stack.
 struct VisitorData {
     whitespace_data: WhitespaceData,
     node_stack: Vec<RustTraceableNode>,
@@ -79,7 +81,8 @@ impl VisitorData {
 
     /// Get a mutable reference to the root node.
     ///
-    /// Returns some mutable reference to the first node on the stack (the root node) if there is one.
+    /// Returns some mutable reference to the first node on the stack (the root node) if there is
+    /// one.
     fn _get_root_mut(&mut self) -> Option<&mut RustTraceableNode> {
         self.node_stack.first_mut()
     }
@@ -87,9 +90,11 @@ impl VisitorData {
 
 /// Whitespace data to track whitespace token info.
 ///
-/// The whitespace data is used to keep track of the current line in the file and the char position of the last parsed linebreak in the file.
-/// It should be updated when visiting WHITESPACE kind tokens. The data can then be used to provide accurate locations of functions and structs in the source file.
-/// This is used because the SyntaxTree from ra_ap_syntax only tracks character ranges in the file, disregarding line information.
+/// The whitespace data is used to keep track of the current line in the file and the char position
+/// of the last parsed linebreak in the file. It should be updated when visiting WHITESPACE kind
+/// tokens. The data can then be used to provide accurate locations of functions and structs in the
+/// source file. This is used because the SyntaxTree from ra_ap_syntax only tracks character ranges
+/// in the file, disregarding line information.
 struct WhitespaceData {
     current_line: usize,
     last_linebrk: usize,
@@ -99,7 +104,8 @@ impl WhitespaceData {
     /// Calculate the position for a given SyntaxElement.
     ///
     /// Provides the line and the column for a given SyntaxElement.
-    /// Tis is only correct if all WHITESPACE tokens before the element containing line breaks were already parsed to whitespace data!
+    /// Tis is only correct if all WHITESPACE tokens before the element containing line breaks were
+    /// already parsed to whitespace data!
     ///
     /// ### Parameters
     /// * `element` - SyntaxElement to calculate line and column for.
@@ -116,9 +122,10 @@ impl WhitespaceData {
 /// RustVisitor to traverse the syntax tree and gather RustTraceableNodes.
 ///
 /// The RustVisitor implements the Visitor trait.
-/// This allows traversing the SyntaxNodes of the SyntaxTree that were extended with the Visitable trait.
-/// The node_enter, node_exit and token_visit funtions work as a mapping
-/// from the nodes and tokes SyntaxKind to specific RustVisitor methods that define the handling of each node and token kind.
+/// This allows traversing the SyntaxNodes of the SyntaxTree that were extended with the Visitable
+/// trait. The node_enter, node_exit and token_visit funtions work as a mapping
+/// from the nodes and tokes SyntaxKind to specific RustVisitor methods that define the handling of
+/// each node and token kind.
 pub(crate) struct RustVisitor {
     /// Filepath to the source file (.rs) the visitor is parsing.
     filepath: PathBuf,
@@ -126,7 +133,8 @@ pub(crate) struct RustVisitor {
     default_context: Context,
     /// Visitor data to track the visitors internal state while traversing the SyntaxTree.
     vdata: VisitorData,
-    /// Other visitors that are used to visit files that were included via module declarations in this visitors source file.
+    /// Other visitors that are used to visit files that were included via module declarations in
+    /// this visitors source file.
     module_visitors: Vec<RustVisitor>,
 }
 
@@ -138,7 +146,8 @@ impl RustVisitor {
     ///
     /// ### Parameters
     /// * `filepath` - Path to the file the visitor shall parse.
-    /// * `context` - Default context for the visitor, will be prepended to parsed names and tags. */
+    /// * `context` - Default context for the visitor, will be prepended to parsed names and tags.
+    ///   */
     ///
     /// ### Returns
     /// A Rustvisitor for the given file.
@@ -202,7 +211,8 @@ impl RustVisitor {
     /// Reads the contents of the file pointed to by the filepath.
     /// Parses the contents of the file into a SyntaxTree.
     /// Traverses the tree by calling travel on the root node of the tree.
-    /// Recursively also parses all included modules by calling .parse_file() of its module_visitors.
+    /// Recursively also parses all included modules by calling .parse_file() of its
+    /// module_visitors.
     pub(crate) fn parse_file(&mut self) {
         match fs::read_to_string(&self.filepath) {
             Err(e) => println!("WARNING: File: {:#?}\n{}", &self.filepath, e),
@@ -222,7 +232,8 @@ impl RustVisitor {
 
     /// Resturns its own root node and the root nodes of all module_visitors.
     ///
-    /// Gathers its own root_node (first on the stack) and the root nodes of all module visitors in a Vector.
+    /// Gathers its own root_node (first on the stack) and the root nodes of all module visitors in
+    /// a Vector.
     ///
     /// ### Returns
     /// Vecor of the root nodes.
@@ -241,7 +252,7 @@ impl RustVisitor {
         out_nodes
     }
 
-    /*********************** Node visit functions ***********************/
+    /*********************** Node visit functions ********************** */
 
     /// Callback for source node enter.
     ///
@@ -258,7 +269,8 @@ impl RustVisitor {
     /// Callback for FN node enter.
     ///
     /// Parses function information for the given FN node.
-    /// Determines location, context, name and builds and puts the RustTraceableNode on the node stack.
+    /// Determines location, context, name and builds and puts the RustTraceableNode on the node
+    /// stack.
     ///
     /// ### Parameters
     /// * `fn_node` - SyntaxNode of kind FN.
@@ -307,7 +319,8 @@ impl RustVisitor {
     /// Callback for STRUCT node enter.
     ///
     /// Parses struct information for the given STRUCT node.
-    /// Determines location, context, name and builds and puts the RustTraceableNode on the node stack.
+    /// Determines location, context, name and builds and puts the RustTraceableNode on the node
+    /// stack.
     ///
     /// ### Parameters
     /// * `struct_node` - SyntaxNode of kind STRUCT.
@@ -383,8 +396,9 @@ impl RustVisitor {
     ///
     /// Parses information for the given MODULE node.
     /// Determines if the node represents a module declaration.
-    /// If so, the module is resolved to a file path and a module visitor for the new source file is created.
-    /// If the node instead represents a local module definition, it is parsed to a context node and put on the stack.
+    /// If so, the module is resolved to a file path and a module visitor for the new source file is
+    /// created. If the node instead represents a local module definition, it is parsed to a
+    /// context node and put on the stack.
     ///
     /// ### Parameters
     /// * `mod_node` - SyntaxNode of kind MODULE.
@@ -406,7 +420,8 @@ impl RustVisitor {
                         // Resolve the path given by the path attribute.
                         self.module_visitors.push(RustVisitor::new(
                             self.filepath.parent().unwrap().join(module_path),
-                            Context::Empty, // This is not correct, need to resolve a Context from the path.
+                            Context::Empty, /* This is not correct, need to resolve a Context
+                                             * from the path. */
                         ));
                     } else {
                         // Follow the standard module declaration resolution.
@@ -455,7 +470,7 @@ impl RustVisitor {
         }
     }
 
-    /*********************** Token visit functions ***********************/
+    /*********************** Token visit functions ********************** */
 
     /// Callback for WHITESPACE token visit.
     ///
@@ -488,7 +503,8 @@ impl RustVisitor {
     ///
     /// Parsed the contents of the COMMENT token.
     /// Possible requirement references or justifications are found by regex application.
-    /// If a reference or justification is found, it is added to the enclosing node (from the node stack).
+    /// If a reference or justification is found, it is added to the enclosing node (from the node
+    /// stack).
     ///
     /// ### Parameters
     /// * `comment_token` - Token of kind COMMENT.
