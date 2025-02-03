@@ -85,7 +85,7 @@ fn main() {
     // Write lobster common interchange format to output file.
     let outfile: &Path = Path::new(&args.out);
     match File::create(&outfile) {
-        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
+        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e), // Can't write results, panic to print error information.
         Ok(outfile) => {
             let mut outwriter = BufWriter::new(outfile);
             let _ = jout.write_pretty(&mut outwriter, 4);
