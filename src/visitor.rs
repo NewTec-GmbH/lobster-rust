@@ -204,19 +204,19 @@ impl RustVisitor {
     /// Traverses the tree by calling travel on the root node of the tree.
     /// Recursively also parses all included modules by calling .parse_file() of its module_visitors.
     pub(crate) fn parse_file(&mut self) {
-        let text: String;
         match fs::read_to_string(&self.filepath) {
-            Ok(t) => text = t,
-            Err(e) => panic!("File: {:#?}\n{}", &self.filepath, e),
-        }
-        let parse = SourceFile::parse(&text, Edition::Edition2024);
-        let tree: SourceFile = parse.tree();
-        let root_node = tree.syntax();
+            Err(e) => println!("WARNING: File: {:#?}\n{}", &self.filepath, e),
+            Ok(text) => {
+                let parse = SourceFile::parse(&text, Edition::Edition2024);
+                let tree: SourceFile = parse.tree();
+                let root_node = tree.syntax();
 
-        self.travel(root_node);
+                self.travel(root_node);
 
-        for subvisitor in self.module_visitors.iter_mut() {
-            subvisitor.parse_file();
+                for subvisitor in self.module_visitors.iter_mut() {
+                    subvisitor.parse_file();
+                }
+            }
         }
     }
 
@@ -280,14 +280,11 @@ impl RustVisitor {
         let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
 
         // Parse node.
-        let node = RustTraceableNode::from_node_with_location(fn_node, location, context.to_str())
-            .unwrap_or_else(|| {
-                panic!(
-                    "Could not parse fn at line {:#?}.",
-                    self.vdata.whitespace_data.current_line
-                )
-            });
-        self.vdata.node_stack.push(node);
+        if let Some(node) =
+            RustTraceableNode::from_node_with_location(fn_node, location, context.to_str())
+        {
+            self.vdata.node_stack.push(node);
+        }
     }
 
     /// Callback for FN node exit.
@@ -297,11 +294,13 @@ impl RustVisitor {
     /// ### Parameters
     /// * `_` - SyntaxNode of kind FN.
     fn exit_fn(&mut self, _: &SyntaxNode) {
-        // Pop function node from stack and add it to its parent node
-        let closed_fn = self.vdata.node_stack.pop().unwrap();
+        if self.vdata.node_stack.last().unwrap().kind == NodeKind::Function {
+            // Pop function node from stack and add it to its parent node.
+            let closed_fn = self.vdata.node_stack.pop().unwrap();
 
-        if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
-            enclosing_node.append_child(closed_fn);
+            if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
+                enclosing_node.append_child(closed_fn);
+            }
         }
     }
 
@@ -331,15 +330,11 @@ impl RustVisitor {
         let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
 
         // Parse node.
-        let node =
+        if let Some(node) =
             RustTraceableNode::from_node_with_location(struct_node, location, context.to_str())
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Could not parse struct at line {:#?}.",
-                        self.vdata.whitespace_data.current_line
-                    )
-                });
-        self.vdata.node_stack.push(node);
+        {
+            self.vdata.node_stack.push(node);
+        }
     }
 
     /// Callback for STRUCT node exit.
@@ -349,11 +344,13 @@ impl RustVisitor {
     /// ### Parameters
     /// * `_` - SyntaxNode of kind SRUCT.
     fn exit_struct(&mut self, _: &SyntaxNode) {
-        // Pop struct node from stack and add it to its parent node
-        let closed_struct = self.vdata.node_stack.pop().unwrap();
+        if self.vdata.node_stack.last().unwrap().kind == NodeKind::Struct {
+            // Pop struct node from stack and add it to its parent node.
+            let closed_struct = self.vdata.node_stack.pop().unwrap();
 
-        if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
-            enclosing_node.append_child(closed_struct);
+            if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
+                enclosing_node.append_child(closed_struct);
+            }
         }
     }
 
