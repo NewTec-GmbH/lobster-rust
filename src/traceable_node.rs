@@ -1,6 +1,3 @@
-//! RustTraceableNode to hold information from parsing the syntax tree and auxiliary structs and
-//! fuctions.
-
 // BSD 3-Clause License
 //
 // Copyright (c) 2025, NewTec GmbH
@@ -29,6 +26,9 @@
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+//! RustTraceableNode to hold information from parsing the syntax tree and auxiliary structs and
+//! fuctions.
 
 use json::{object::Object, JsonValue};
 use ra_ap_syntax::{SyntaxKind, SyntaxNode};

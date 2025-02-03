@@ -1,5 +1,3 @@
-//! Utility functions to resolve module declarations to file paths.
-
 // BSD 3-Clause License
 //
 // Copyright (c) 2025, NewTec GmbH
@@ -28,6 +26,8 @@
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+//! Utility functions to resolve module declarations to file paths.
 
 use crate::utils::context::Context;
 use std::fs::{self, DirEntry};

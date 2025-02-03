@@ -1,5 +1,3 @@
-//! lobster-rust tool to prodce lobster common interchange format from a rust project.
-
 // BSD 3-Clause License
 //
 // Copyright (c) 2025, NewTec GmbH
@@ -28,6 +26,8 @@
 // CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+//! lobster-rust tool to prodce lobster common interchange format from a rust project.
 
 use clap::Parser;
 use json::{object::Object, JsonValue};
