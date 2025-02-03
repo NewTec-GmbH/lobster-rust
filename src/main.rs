@@ -7,16 +7,16 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 //
-// 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer.
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+//    and the following disclaimer.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+//    conditions and the following disclaimer in the documentation and/or other materials provided
+//    with the distribution.
 //
-// 3. Neither the name of the copyright holder nor the names of its
-//    contributors may be used to endorse or promote products derived from
-//    this software without specific prior written permission.
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+//    endorse or promote products derived from this software without specific prior written
+//    permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -82,7 +82,8 @@ fn main() {
     // Write lobster common interchange format to output file.
     let outfile: &Path = Path::new(&args.out);
     match File::create(&outfile) {
-        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e), // Can't write results, panic to print error information.
+        // Panic if we cant write the results. Print error details.
+        Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
         Ok(outfile) => {
             let mut outwriter = BufWriter::new(outfile);
             let _ = jout.write_pretty(&mut outwriter, 4);

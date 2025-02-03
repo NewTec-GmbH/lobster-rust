@@ -1,4 +1,5 @@
-//! RustTraceableNode to hold information from parsing the syntax tree and auxiliary structs and fuctions.
+//! RustTraceableNode to hold information from parsing the syntax tree and auxiliary structs and
+//! fuctions.
 
 // BSD 3-Clause License
 //
@@ -7,16 +8,16 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 //
-// 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer.
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+//    and the following disclaimer.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+//    conditions and the following disclaimer in the documentation and/or other materials provided
+//    with the distribution.
 //
-// 3. Neither the name of the copyright holder nor the names of its
-//    contributors may be used to endorse or promote products derived from
-//    this software without specific prior written permission.
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+//    endorse or promote products derived from this software without specific prior written
+//    permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -72,7 +73,8 @@ impl NodeKind {
 pub(crate) struct RustTraceableNode {
     // lobster-trace: HOLD.refs
     /// The name of the node, produced from context and parsed information.
-    /// The name is also used to construct the tracing tag when converting to the lobster common interchange format.
+    /// The name is also used to construct the tracing tag when converting to the lobster common
+    /// interchange format.
     pub(crate) name: String,
     /// The kind of the node.
     pub(crate) kind: NodeKind,
@@ -145,7 +147,8 @@ impl RustTraceableNode {
                     Some(RustTraceableNode::new(name, location, node_kind))
                 }
                 NodeKind::Context => match node.kind() {
-                    // IMPL and MODULE node conversion are done in separate functions to keep code simpler.
+                    // IMPL and MODULE node conversion are done in separate functions to keep code
+                    // simpler.
                     SyntaxKind::IMPL => RustTraceableNode::from_impl_node(node),
                     SyntaxKind::MODULE => RustTraceableNode::from_module_node(node),
                     _ => None,
@@ -211,8 +214,9 @@ impl RustTraceableNode {
 
     /// Constructs a new RTN from an MODULE SyntaxNode.
     ///
-    /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode of MODULE SyntaxKind.
-    /// The module node is parsed to context data that is used when parsing enclodes nodes.
+    /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode of MODULE
+    /// SyntaxKind. The module node is parsed to context data that is used when parsing enclodes
+    /// nodes.
     ///
     /// ### Parameters
     /// * `node` - SyntaxNode that should be parsed to a context RTN.
@@ -233,8 +237,9 @@ impl RustTraceableNode {
 
     /// Constructs a new RTN from a SyntaxNode and location.
     ///
-    /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode with the given location.
-    /// Helper function that calls from_node and adds the given location, resulting in cleaner code.
+    /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode with the given
+    /// location. Helper function that calls from_node and adds the given location, resulting in
+    /// cleaner code.
     ///
     /// ### Parameters
     /// * `node` - SyntaxNode that should be parsed to a corresponding RTN.
@@ -266,11 +271,13 @@ impl RustTraceableNode {
     /// Converst to lobster format and adds itselfs to the items.
     ///
     /// Converts the RustTraceableNode to the lobster common interchange format.
-    /// This is either done by converting the node itself (done via the JsonValue::From implementation),
-    /// or by converting and adding all of the nodes children, depending on node kind.
+    /// This is either done by converting the node itself (done via the JsonValue::From
+    /// implementation), or by converting and adding all of the nodes children, depending on
+    /// node kind.
     ///
     /// ### Returns
-    /// Vector of JsonValues, containing either its own representation and/or the childs representations.
+    /// Vector of JsonValues, containing either its own representation and/or the childs
+    /// representations.
     pub(crate) fn to_lobster(&self) -> Vec<JsonValue> {
         match self.kind {
             NodeKind::Source => self
@@ -317,9 +324,10 @@ impl From<&RustTraceableNode> for JsonValue {
     /// Convert RTN to a JsonValue.
     ///
     /// Parse a JsonValue from a RustTraceableNode.
-    /// This conversion returns json in the form of a data item in the lobster common interchange format.
-    /// The relevant fields of the RTN are parsed to the corresponding json fields.
-    /// Fields in the interchange format without any relevance are added with no data (or as empty lists.)
+    /// This conversion returns json in the form of a data item in the lobster common interchange
+    /// format. The relevant fields of the RTN are parsed to the corresponding json fields.
+    /// Fields in the interchange format without any relevance are added with no data (or as empty
+    /// lists.)
     ///
     /// ### Parameters
     /// * `node` - RustTraceableNode to convert to JsonValue.
@@ -369,8 +377,10 @@ impl ContextData {
     /// Construct new context data.
     ///
     /// ### Parameters
-    /// * `context` - Context to represent some enclosing namespace, be it a local module name or the target struct name of an impl block.
-    /// * `trait_imp` - Optional name of the trait being implemented (for impl blocks that implement a trait for a target struct).
+    /// * `context` - Context to represent some enclosing namespace, be it a local module name or
+    ///   the target struct name of an impl block.
+    /// * `trait_imp` - Optional name of the trait being implemented (for impl blocks that implement
+    ///   a trait for a target struct).
     ///
     /// ### Returns
     /// The newly constructed context data.
@@ -384,7 +394,8 @@ impl ContextData {
 
 /// Convert SyntaxKind to NodeKind.
 ///
-/// Converts the SyntaxKind of a SyntaxNode from the ra_ap_syntax crate to the corresponding NodeKind of a RustTraceableNode.
+/// Converts the SyntaxKind of a SyntaxNode from the ra_ap_syntax crate to the corresponding
+/// NodeKind of a RustTraceableNode.
 ///
 /// ### Parameters
 /// * `kind` - SyntaxKind to find corresponding NodeKind for.

@@ -7,16 +7,16 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
 //
-// 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer.
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions
+//    and the following disclaimer.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-//    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution.
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of
+//    conditions and the following disclaimer in the documentation and/or other materials provided
+//    with the distribution.
 //
-// 3. Neither the name of the copyright holder nor the names of its
-//    contributors may be used to endorse or promote products derived from
-//    this software without specific prior written permission.
+// 3. Neither the name of the copyright holder nor the names of its contributors may be used to
+//    endorse or promote products derived from this software without specific prior written
+//    permission.
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 // AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -34,8 +34,9 @@ use ra_ap_syntax::{NodeOrToken, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxTok
 
 /// Visitable trait
 ///
-/// Implementation of the Visitable trait is needed to be visitable by structs implementing the Visitor trait.
-/// The visit method has to be defined to establish which Visitor callbacks are called and how the Visitable struct is traversed.
+/// Implementation of the Visitable trait is needed to be visitable by structs implementing the
+/// Visitor trait. The visit method has to be defined to establish which Visitor callbacks are
+/// called and how the Visitable struct is traversed.
 pub(crate) trait Visitable {
     fn visit(&self, visitor: &mut dyn Visitor);
 }
@@ -88,7 +89,8 @@ impl Visitable for SyntaxToken {
 
 /// Eextends the type with practical filtering options.
 ///
-/// This trait is intended to extend the ra_ap_crates SyntaxElement with some additional access methods.
+/// This trait is intended to extend the ra_ap_crates SyntaxElement with some additional access
+/// methods.
 pub(crate) trait Searchable {
     /// Returns the first child of the given kind, if any such child is found.
     ///
