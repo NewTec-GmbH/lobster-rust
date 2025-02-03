@@ -54,12 +54,11 @@ fn main() {
     let args = args::Cli::parse();
 
     // Determine entry file filename (lib.rs instead of main.rs if --lib flag is set).
-    let filename;
-    if args.lib {
-        filename = Path::new("lib.rs");
+    let filename = if args.lib {
+        Path::new("lib.rs")
     } else {
-        filename = Path::new("main.rs");
-    }
+        Path::new("main.rs")
+    };
     let filepath = Path::new(&args.dir).join(filename);
 
     // Create and run visitor on entry file.
@@ -70,7 +69,7 @@ fn main() {
     let modules = visitor.get_traceable_nodes();
 
     // Convert parsed modules to lobster common interchange format.
-    let data: Vec<JsonValue> = modules.iter().map(|m| m.to_lobster()).flatten().collect();
+    let data: Vec<JsonValue> = modules.iter().flat_map(|m| m.to_lobster()).collect();
 
     // Combine parsed data and fixed information to full lobster common interchange format output.
     let mut jout = JsonValue::Object(Object::new());
@@ -81,7 +80,7 @@ fn main() {
 
     // Write lobster common interchange format to output file.
     let outfile: &Path = Path::new(&args.out);
-    match File::create(&outfile) {
+    match File::create(outfile) {
         // Panic if we cant write the results. Print error details.
         Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
         Ok(outfile) => {

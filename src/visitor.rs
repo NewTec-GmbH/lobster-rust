@@ -180,12 +180,11 @@ impl RustVisitor {
             .node_stack
             .iter()
             .filter(|n| NodeKind::Context == n.kind)
-            .map(|rtn| rtn.context_data.as_ref())
-            .flatten()
+            .filter_map(|rtn| rtn.context_data.as_ref())
             .map(|context_data| &context_data.context)
             .collect();
 
-        if nested_in.len() > 0 {
+        if !nested_in.is_empty() {
             nested_in.into_iter().sum()
         } else {
             Context::Empty
@@ -239,7 +238,7 @@ impl RustVisitor {
     /// Vecor of the root nodes.
     pub(crate) fn get_traceable_nodes(&mut self) -> Vec<RustTraceableNode> {
         let mut out_nodes: Vec<RustTraceableNode>;
-        if 0 == self.vdata.node_stack.len() {
+        if self.vdata.node_stack.is_empty() {
             out_nodes = Vec::new();
         } else {
             out_nodes = vec![self.vdata.node_stack.remove(0)];
@@ -410,11 +409,8 @@ impl RustVisitor {
                 if t.kind() == SyntaxKind::SEMICOLON {
                     // Found module declaration. Resolve to corresponding file.
                     let attrs = mod_node.get_children_kind(SyntaxKind::ATTR);
-                    let path_attributes: Vec<PathBuf> = attrs
-                        .iter()
-                        .map(|att| extract_path_attribute(att))
-                        .flatten()
-                        .collect();
+                    let path_attributes: Vec<PathBuf> =
+                        attrs.iter().filter_map(extract_path_attribute).collect();
 
                     if let Some(module_path) = path_attributes.first() {
                         // Resolve the path given by the path attribute.
@@ -457,16 +453,13 @@ impl RustVisitor {
     /// * `mod_node` - SyntaxNode of kind MODULE.
     fn exit_module(&mut self, mod_node: &SyntaxNode) {
         // Only pop the last Context if this mod_node was added as a Context.
-        match mod_node.children_with_tokens().last().unwrap() {
-            NodeOrToken::Node(n) => {
-                if n.kind() == SyntaxKind::ITEM_LIST {
-                    let closed_context = self.vdata.node_stack.pop().unwrap();
-                    if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
-                        enclosing_node.append_child(closed_context);
-                    }
+        if let NodeOrToken::Node(n) = mod_node.children_with_tokens().last().unwrap() {
+            if n.kind() == SyntaxKind::ITEM_LIST {
+                let closed_context = self.vdata.node_stack.pop().unwrap();
+                if let Some(enclosing_node) = self.vdata.node_stack.last_mut() {
+                    enclosing_node.append_child(closed_context);
                 }
             }
-            _ => (),
         }
     }
 
