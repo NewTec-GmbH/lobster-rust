@@ -4,7 +4,7 @@ use json::{object::Object, JsonValue};
 use ra_ap_syntax::{SyntaxKind, SyntaxNode};
 use std::fmt::Display;
 
-use crate::{location::FileReference, syntax_extensions::Searchable};
+use crate::{location::FileReference, syntax_extensions::Searchable, utils::context::Context};
 
 /// Enum to define the different kinds of RustTraceableNodes.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -154,7 +154,7 @@ impl RustTraceableNode {
                 // Parse to context data.
                 let traitref = path_nodes[0].text().to_string();
                 let structref = path_nodes[1].text().to_string();
-                let impl_data = ContextData::new(structref, Some(traitref));
+                let impl_data = ContextData::new(Context::from_str(&structref), Some(traitref));
                 let mut new_node = RustTraceableNode::new(
                     "Impl".to_string(),
                     FileReference::new_default(),
@@ -166,7 +166,7 @@ impl RustTraceableNode {
         } else if path_nodes.len() == 1 {
             // Parse to context data.
             let structref = path_nodes[0].text().to_string();
-            let impl_data = ContextData::new(structref, None);
+            let impl_data = ContextData::new(Context::from_str(&structref), None);
             let mut new_node = RustTraceableNode::new(
                 "Impl".to_string(),
                 FileReference::new_default(),
@@ -197,7 +197,7 @@ impl RustTraceableNode {
             FileReference::new_default(),
             NodeKind::Context,
         );
-        let context = ContextData::new(name_node.text().to_string(), None);
+        let context = ContextData::new(Context::from_str(&name_node.text().to_string()), None);
         new_node.context_data = Some(context);
         Some(new_node)
     }
@@ -330,7 +330,7 @@ impl From<&RustTraceableNode> for JsonValue {
 /// Holds namespace and optional trait information.
 #[derive(Debug, Clone)]
 pub(crate) struct ContextData {
-    pub(crate) namespace: String,
+    pub(crate) context: Context,
     pub(crate) _trait_imp: Option<String>,
 }
 
@@ -338,14 +338,14 @@ impl ContextData {
     /// Construct new context data.
     ///
     /// ### Parameters
-    /// * `namespace` - String to represent some enclosing namespace, be it a local module name or the target struct name of an impl block.
+    /// * `context` - Context to represent some enclosing namespace, be it a local module name or the target struct name of an impl block.
     /// * `trait_imp` - Optional name of the trait being implemented (for impl blocks that implement a trait for a target struct).
     ///
     /// ### Returns
     /// The newly constructed context data.
-    fn new(namespace: String, trait_imp: Option<String>) -> Self {
+    fn new(context: Context, trait_imp: Option<String>) -> Self {
         ContextData {
-            namespace,
+            context,
             _trait_imp: trait_imp,
         }
     }
