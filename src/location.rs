@@ -30,6 +30,7 @@
 //! FileReference and GithubReference to track file source and posiiton in files.
 
 use json::{object::Object, JsonValue};
+use std::fmt::Display;
 
 /// Struct to define the location of an item in a file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -71,21 +72,6 @@ impl FileReference {
             column: None,
         }
     }
-
-    /// Convert the FileReference to a String representation.
-    ///
-    /// ### Returns
-    /// String representation of the file reference.
-    pub(crate) fn to_string(&self) -> String {
-        let mut result = self.filename.clone();
-        if let Some(line) = self.line {
-            result.push_str(&format!(":{}", line));
-        }
-        if let Some(col) = self.column {
-            result.push_str(&format!(":{}", col));
-        }
-        result
-    }
 }
 
 /// Implement JsonValue::from(node: &FileReference)
@@ -111,5 +97,12 @@ impl From<&FileReference> for JsonValue {
         let _ = location_json.insert("line", reference.line);
         let _ = location_json.insert("column", reference.column);
         location_json
+    }
+}
+
+impl Display for FileReference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{:?}:{:?}", self.filename, self.line, self.column)?;
+        Ok(())
     }
 }

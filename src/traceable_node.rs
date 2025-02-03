@@ -55,7 +55,7 @@ pub(crate) enum NodeKind {
 
 impl NodeKind {
     /// Returns a &str representing the NodeKind.
-    pub(crate) fn to_str(&self) -> &str {
+    pub(crate) fn to_str(self) -> &'static str {
         match self {
             NodeKind::Source => "Module",
             NodeKind::Struct => "Struct",
@@ -180,7 +180,7 @@ impl RustTraceableNode {
         if path_nodes.len() == 2 {
             // Expect the for kw to be present when a trait is implemented (2 path nodes).
             let for_kw = node.get_tokens_kind(SyntaxKind::FOR_KW);
-            if for_kw.len() == 0 {
+            if for_kw.is_empty() {
                 None
             } else {
                 // Parse to context data.
@@ -253,9 +253,12 @@ impl RustTraceableNode {
         location: FileReference,
         prefix: String,
     ) -> Option<Self> {
-        let mut new_node = Self::from_node(node, prefix);
-        new_node.as_mut().map(|n| n.location = location);
-        new_node
+        if let Some(mut new_node) = Self::from_node(node, prefix) {
+            new_node.location = location;
+            Some(new_node)
+        } else {
+            None
+        }
     }
 
     /// Appends RustTraceableNode as a child.
@@ -280,24 +283,14 @@ impl RustTraceableNode {
     /// representations.
     pub(crate) fn to_lobster(&self) -> Vec<JsonValue> {
         match self.kind {
-            NodeKind::Source => self
-                .children
-                .iter()
-                .map(|c| c.to_lobster())
-                .flatten()
-                .collect(),
+            NodeKind::Source => self.children.iter().flat_map(|c| c.to_lobster()).collect(),
             NodeKind::Function => {
                 vec![JsonValue::from(self)]
             }
             NodeKind::Struct => {
                 vec![JsonValue::from(self)]
             }
-            NodeKind::Context => self
-                .children
-                .iter()
-                .map(|c| c.to_lobster())
-                .flatten()
-                .collect(),
+            NodeKind::Context => self.children.iter().flat_map(|c| c.to_lobster()).collect(),
             _ => vec![],
         }
     }
@@ -311,7 +304,7 @@ impl Display for RustTraceableNode {
             "Node {} {} at {}",
             self.kind.to_str(),
             self.name,
-            self.location.to_string()
+            self.location
         )?;
         Ok(())
     }
@@ -337,7 +330,7 @@ impl From<&RustTraceableNode> for JsonValue {
         // idk if we really want to do this
         let mut json_out = JsonValue::Object(Object::new());
         let _ = json_out.insert("tag", format!("rust {}", node.name));
-        let _ = json_out.insert("name", format!("{}", node.name));
+        let _ = json_out.insert("name", node.name.to_string());
         let _ = json_out.insert("location", JsonValue::from(&node.location));
         let _ = json_out.insert("messages", JsonValue::Array(Vec::new()));
         let _ = json_out.insert(

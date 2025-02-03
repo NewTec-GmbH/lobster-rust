@@ -68,10 +68,10 @@ pub(crate) fn resolve_module_declaration(
     if ["main", "lib", "mod"].contains(&current_file_stem) {
         // Option 1: file named target.rs
         if let Some(file_result) = check_file_module(&directory_content, &file_target) {
-            return Some(file_result);
+            Some(file_result)
         } else {
             // Option 2: target directory with mod.rs.
-            check_directory_module(&directory_content, &target_module_name)
+            check_directory_module(&directory_content, target_module_name)
         }
     } else {
         // For files other than main.rs, lib.rs or mod.rs,
@@ -80,8 +80,8 @@ pub(crate) fn resolve_module_declaration(
         check_nested_submodule(
             &directory_content,
             &file_target,
-            &target_module_name,
-            &current_file_stem,
+            target_module_name,
+            current_file_stem,
         )
     }
 }
@@ -99,7 +99,7 @@ pub(crate) fn resolve_module_declaration(
 /// ### Returns
 /// Some(PathBuf, Context) if the module could be resolved to a file.
 fn check_file_module(
-    directory_content: &Vec<PathBuf>,
+    directory_content: &[PathBuf],
     file_target: &str,
 ) -> Option<(PathBuf, Context)> {
     for directory_entry in directory_content {
@@ -128,7 +128,7 @@ fn check_file_module(
 /// ### Returns
 /// Some(PathBuf, Context) if the module could be resolved to a directory (with mod.rs).
 fn check_directory_module(
-    directory_content: &Vec<PathBuf>,
+    directory_content: &[PathBuf],
     target_module_name: &str,
 ) -> Option<(PathBuf, Context)> {
     for directory_entry in directory_content {
@@ -169,19 +169,15 @@ fn check_directory_module(
 /// Some(PathBuf, Context) if the module could be resolved to a source file or directory (with
 /// mod.rs).
 fn check_nested_submodule(
-    directory_content: &Vec<PathBuf>,
+    directory_content: &[PathBuf],
     file_target: &str,
     target_module_name: &str,
     current_file_stem: &str,
 ) -> Option<(PathBuf, Context)> {
     // Find subdirectory with the same name as the current file.
-    if let Some(subdirectory) = directory_content
-        .iter()
-        .filter(|directory_entry| {
-            directory_entry.is_dir() && directory_entry.ends_with(current_file_stem)
-        })
-        .next()
-    {
+    if let Some(subdirectory) = directory_content.iter().find(|directory_entry| {
+        directory_entry.is_dir() && directory_entry.ends_with(current_file_stem)
+    }) {
         // Get the contents of the subdirectory.
         let subdirectory_content: Vec<PathBuf> = fs::read_dir(subdirectory)
             .ok()?

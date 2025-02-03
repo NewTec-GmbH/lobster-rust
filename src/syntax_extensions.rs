@@ -136,7 +136,7 @@ impl Searchable for SyntaxElement {
 
 impl Searchable for SyntaxNode {
     fn get_child_kind(&self, kind: SyntaxKind) -> Option<SyntaxNode> {
-        self.children().filter(|c| kind == c.kind()).next()
+        self.children().find(|c| kind == c.kind())
     }
 
     fn get_children_kind(&self, kind: SyntaxKind) -> Vec<SyntaxNode> {
@@ -145,11 +145,10 @@ impl Searchable for SyntaxNode {
 
     fn get_tokens_kind(&self, kind: SyntaxKind) -> Vec<SyntaxToken> {
         self.children_with_tokens()
-            .map(|ton| match ton {
+            .filter_map(|ton| match ton {
                 NodeOrToken::Node(_) => None,
                 NodeOrToken::Token(t) => Some(t),
             })
-            .flatten()
             .filter(|t| kind == t.kind())
             .collect()
     }
