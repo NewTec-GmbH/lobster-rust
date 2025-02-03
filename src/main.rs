@@ -70,10 +70,7 @@ fn main() {
     let modules = visitor.get_traceable_nodes();
 
     // Convert parsed modules to lobster common interchange format.
-    let mut data: Vec<JsonValue> = Vec::new();
-    for module in modules {
-        module.to_lobster(&mut data);
-    }
+    let data: Vec<JsonValue> = modules.iter().map(|m| m.to_lobster()).flatten().collect();
 
     // Combine parsed data and fixed information to full lobster common interchange format output.
     let mut jout = JsonValue::Object(Object::new());

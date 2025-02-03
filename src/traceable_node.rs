@@ -269,27 +269,29 @@ impl RustTraceableNode {
     /// This is either done by converting the node itself (done via the JsonValue::From implementation),
     /// or by converting and adding all of the nodes children, depending on node kind.
     ///
-    /// ### Parameters
-    /// * `items` - Vector of already converted items, new converted items will be appended.
-    pub(crate) fn to_lobster(&self, items: &mut Vec<JsonValue>) {
+    /// ### Returns
+    /// Vector of JsonValues, containing either its own representation and/or the childs representations.
+    pub(crate) fn to_lobster(&self) -> Vec<JsonValue> {
         match self.kind {
-            NodeKind::Source => {
-                for child in &self.children {
-                    child.to_lobster(items);
-                }
-            }
+            NodeKind::Source => self
+                .children
+                .iter()
+                .map(|c| c.to_lobster())
+                .flatten()
+                .collect(),
             NodeKind::Function => {
-                items.push(JsonValue::from(self));
+                vec![JsonValue::from(self)]
             }
             NodeKind::Struct => {
-                items.push(JsonValue::from(self));
+                vec![JsonValue::from(self)]
             }
-            NodeKind::Context => {
-                for child in &self.children {
-                    child.to_lobster(items);
-                }
-            }
-            _ => (),
+            NodeKind::Context => self
+                .children
+                .iter()
+                .map(|c| c.to_lobster())
+                .flatten()
+                .collect(),
+            _ => vec![],
         }
     }
 }
