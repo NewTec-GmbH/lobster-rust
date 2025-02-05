@@ -78,14 +78,6 @@ impl VisitorData {
     fn get_root(&self) -> Option<&RustTraceableNode> {
         self.node_stack.first()
     }
-
-    /// Get a mutable reference to the root node.
-    ///
-    /// Returns some mutable reference to the first node on the stack (the root node) if there is
-    /// one.
-    fn _get_root_mut(&mut self) -> Option<&mut RustTraceableNode> {
-        self.node_stack.first_mut()
-    }
 }
 
 /// Whitespace data to track whitespace token info.
