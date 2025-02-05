@@ -18,7 +18,7 @@ While tools exist for e.g. Python and C++, no tool for Rust projects was availab
 
 An overview on how lobster-rust fits into the LOBSTER toolchain can be seen below, adapted from [pyTRLCConverters documentation](https://github.com/NewTec-GmbH/pyTRLCConverter).
 
-![lobster-rust context](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/diagrams/lobster_context.plantuml)
+![lobster-rust context](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/refs/heads/main/doc/diagrams/lobster_context.plantuml)
 
 ## Requirement Tracing
 
@@ -109,7 +109,7 @@ This is a planned feature and not yet implemented!
 
 ### Class Diagram
 
-![class structure](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/tree/main/doc/diagrams/class_structure.plantuml)
+![class structure](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/NewTec-GmbH/lobster-rust/refs/heads/main/doc/diagrams/class_structure.plantuml)
 
 ### Module Declaration Resolution
 
