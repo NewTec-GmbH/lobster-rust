@@ -208,6 +208,7 @@ impl RustTraceableNode {
             Some(new_node)
         } else {
             // No path nodes or 3+, fail parsing.
+            println!("WARNING: Malformed impl node. Continuing...");
             None
         }
     }
