@@ -554,9 +554,8 @@ impl RustVisitor {
     fn visit_comment(&mut self, comment_token: &SyntaxToken) {
         // Parse comment for lobster trace or justification annotations
         if let Some(cnode) = self.vdata.node_stack.last_mut() {
-            let trace_re = Regex::new(r"///?.*lobster-trace: (?<ref>[[:alnum:]\._-]+).*").unwrap();
-            let just_re =
-                Regex::new(r"///?.*lobster-exclude: (?<just>[[:alnum:]\._-]+).*").unwrap();
+            let trace_re = Regex::new(r"lobster-trace: (?<ref>[[:alnum:]\._-]+)").unwrap();
+            let just_re = Regex::new(r"lobster-exclude: (?<just>[[:alnum:]\._-]+)").unwrap();
 
             if let Some(cap) = trace_re.captures(comment_token.text()) {
                 if let Some(refmatch) = cap.name("ref") {

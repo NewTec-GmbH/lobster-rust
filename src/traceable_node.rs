@@ -71,7 +71,6 @@ impl NodeKind {
 /// This node can be converted to data in the lobster common interchange format.
 #[derive(Debug, Clone)]
 pub(crate) struct RustTraceableNode {
-    // lobster-trace: HOLD.refs
     /// The name of the node, produced from context and parsed information.
     /// The name is also used to construct the tracing tag when converting to the lobster common
     /// interchange format.
@@ -127,7 +126,6 @@ impl RustTraceableNode {
     pub(crate) fn from_node(node: &SyntaxNode, prefix: String) -> Option<Self> {
         let location = FileReference::new_default();
 
-        // lobster-trace: PARSE.nodes
         // Node handling is dependent on SyntaxKind of the SyntaxNode.
         if let Some(node_kind) = syntax_kind_to_node_kind(node.kind()) {
             match node_kind {
