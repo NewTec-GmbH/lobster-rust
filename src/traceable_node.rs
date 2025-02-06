@@ -153,6 +153,11 @@ impl RustTraceableNode {
                     SyntaxKind::MODULE => RustTraceableNode::from_module_node(node),
                     _ => None,
                 },
+                NodeKind::Trait => {
+                    let name_node = node.get_child_kind(SyntaxKind::NAME)?;
+                    let name = name_node.text().to_string();
+                    Some(RustTraceableNode::new(name, location, NodeKind::Trait))
+                }
                 _ => None,
             }
         } else {
