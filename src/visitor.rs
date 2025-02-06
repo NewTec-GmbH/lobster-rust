@@ -437,6 +437,30 @@ impl RustVisitor {
         }
     }
 
+    /// Callback for TRAIT node enter.
+    ///
+    /// Put a trait node on the stack so that encompassed nodes can check their context.
+    ///
+    /// ### Parameters
+    /// * `trait_node` - SyntaxNode of kind Trait.
+    fn enter_trait(&mut self, trait_node: &SyntaxNode) {
+        // The node information is not needed for the output, only for context while parsing.
+        let traceable_trait_node = RustTraceableNode::from_node(trait_node, String::new()).unwrap();
+        self.vdata.node_stack.push(traceable_trait_node);
+    }
+
+    /// Callback for TRAIT node exit.
+    ///
+    /// Remove the trait node from the stack.
+    ///
+    /// ### Parameters
+    /// * `_` - SyntaxNode of kind Trait.
+    fn exit_trait(&mut self, _: &SyntaxNode) {
+        // No need to append the trait as a child, currently traits are unused in the output.
+        // This also filters out all functions defined in the trait.
+        let _ = self.vdata.node_stack.pop();
+    }
+
     /*********************** Token visit functions ********************** */
 
     /// Callback for FN_KW token visit.
@@ -565,6 +589,7 @@ impl Visitor for RustVisitor {
             SyntaxKind::STRUCT => self.enter_struct(node),
             SyntaxKind::IMPL => self.enter_impl(node),
             SyntaxKind::MODULE => self.enter_module(node),
+            SyntaxKind::TRAIT => self.enter_trait(node),
             _ => (),
         }
     }
@@ -581,6 +606,7 @@ impl Visitor for RustVisitor {
             SyntaxKind::STRUCT => self.exit_struct(node),
             SyntaxKind::IMPL => self.exit_impl(node),
             SyntaxKind::MODULE => self.exit_module(node),
+            SyntaxKind::TRAIT => self.exit_trait(node),
             _ => (),
         }
     }
