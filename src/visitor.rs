@@ -30,9 +30,7 @@
 //! # Visitor trait and RustVisitor to traverse the SyntaxTree.
 
 use ra_ap_edition::Edition;
-use ra_ap_syntax::{
-    AstNode, NodeOrToken, SourceFile, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
-};
+use ra_ap_syntax::{AstNode, NodeOrToken, SourceFile, SyntaxKind, SyntaxNode, SyntaxToken};
 use regex::Regex;
 use std::fs;
 use std::path::PathBuf;
@@ -93,19 +91,19 @@ struct WhitespaceData {
 }
 
 impl WhitespaceData {
-    /// Calculate the position for a given SyntaxElement.
+    /// Calculate the position for a given SyntaxToken.
     ///
-    /// Provides the line and the column for a given SyntaxElement.
+    /// Provides the line and the column for a given SyntaxToken.
     /// Tis is only correct if all WHITESPACE tokens before the element containing line breaks were
     /// already parsed to whitespace data!
     ///
     /// ### Parameters
-    /// * `element` - SyntaxElement to calculate line and column for.
+    /// * `token` - SyntaxToken to calculate line and column for.
     ///
     /// ### Returns
     /// Tuple of line and column for the given element.
-    fn calculate_element_location(&self, element: &SyntaxElement) -> (usize, usize) {
-        let element_start = usize::from(element.text_range().start());
+    fn calculate_token_location(&self, token: &SyntaxToken) -> (usize, usize) {
+        let element_start = usize::from(token.text_range().start());
         let col = element_start - self.last_linebrk;
         (self.current_line, col)
     }
@@ -266,16 +264,8 @@ impl RustVisitor {
     /// ### Parameters
     /// * `fn_node` - SyntaxNode of kind FN.
     fn enter_fn(&mut self, fn_node: &SyntaxNode) {
-        // Calculate position in file.
-        let (line, col): (usize, usize);
-        if let Some(fn_kw_token) = fn_node.get_tokens_kind(SyntaxKind::FN_KW).pop() {
-            (line, col) = self
-                .vdata
-                .whitespace_data
-                .calculate_element_location(&NodeOrToken::Token(fn_kw_token));
-        } else {
-            (line, col) = (self.vdata.whitespace_data.current_line, 0);
-        }
+        // Set current location as approximation. Precise location will be set on fn keyword visit.
+        let (line, col) = (self.vdata.whitespace_data.current_line, 0);
         let filepath = self.vdata.get_root().unwrap().name.clone();
         let location = FileReference::new(filepath, Some(line), Some(col));
 
@@ -316,17 +306,9 @@ impl RustVisitor {
     /// ### Parameters
     /// * `struct_node` - SyntaxNode of kind STRUCT.
     fn enter_struct(&mut self, struct_node: &SyntaxNode) {
-        // Calculate position in file.
-        let (line, col): (usize, usize);
-        if let Some(struct_kw_token) = struct_node.get_tokens_kind(SyntaxKind::STRUCT_KW).pop() {
-            (line, col) = self
-                .vdata
-                .whitespace_data
-                .calculate_element_location(&NodeOrToken::Token(struct_kw_token));
-        } else {
-            (line, col) = (self.vdata.whitespace_data.current_line, 1);
-        }
-        // Get default context + filepath as prefix.
+        // Set current location as approximation. Precise location will be set on struct keyword
+        // visit.
+        let (line, col) = (self.vdata.whitespace_data.current_line, 1);
         let filepath = self.vdata.get_root().unwrap().name.clone();
         let location = FileReference::new(filepath, Some(line), Some(col));
 
@@ -457,6 +439,58 @@ impl RustVisitor {
 
     /*********************** Token visit functions ********************** */
 
+    /// Callback for FN_KW token visit.
+    ///
+    /// Set the correct position for the enclosing function node.
+    ///
+    /// ### Parameters
+    /// * `fn_keyword_token` - Token of kind FN_KW.
+    fn visit_fn_keyword(&mut self, fn_keyword_token: &SyntaxToken) {
+        let (line, column) = self
+            .vdata
+            .whitespace_data
+            .calculate_token_location(fn_keyword_token);
+
+        // Get enclosing function node.
+        let enclosing_node = self.vdata.node_stack.last_mut().unwrap();
+        if NodeKind::Function == enclosing_node.kind {
+            enclosing_node
+                .location
+                .set_position(Some(line), Some(column));
+        } else {
+            println!(
+                "WARNING: Parsed fn_kw not in function node. @{},{}",
+                line, column
+            );
+        }
+    }
+
+    /// Callback for STRUCT_KW token visit.
+    ///
+    /// Set the correct position for the enclosing struct node.
+    ///
+    /// ### Parameters
+    /// * `struct_keyword_token` - Token of kind FN_KW.
+    fn visit_struct_keyword(&mut self, struct_keyword_token: &SyntaxToken) {
+        let (line, column) = self
+            .vdata
+            .whitespace_data
+            .calculate_token_location(struct_keyword_token);
+
+        // Get enclosing function node.
+        let enclosing_node = self.vdata.node_stack.last_mut().unwrap();
+        if NodeKind::Struct == enclosing_node.kind {
+            enclosing_node
+                .location
+                .set_position(Some(line), Some(column));
+        } else {
+            println!(
+                "WARNING: Parsed struct_kw not in struct node. @{},{}",
+                line, column
+            );
+        }
+    }
+
     /// Callback for WHITESPACE token visit.
     ///
     /// Parsed the contents of the WHITESPACE token to track linebreaks in the file.
@@ -561,6 +595,8 @@ impl Visitor for RustVisitor {
         match token.kind() {
             SyntaxKind::WHITESPACE => self.visit_whitespace(token),
             SyntaxKind::COMMENT => self.visit_comment(token),
+            SyntaxKind::FN_KW => self.visit_fn_keyword(token),
+            SyntaxKind::STRUCT_KW => self.visit_struct_keyword(token),
             _ => (),
         }
     }

@@ -72,6 +72,20 @@ impl FileReference {
             column: None,
         }
     }
+
+    /// Set line and column of FileReference.
+    ///
+    /// This is useful for adapting a FileReference that already exists.
+    /// For example a function will receive a FileReference when it is parsed, but the correct line
+    /// and column can only be set once the contained fn keyword is parsed.
+    ///
+    /// ### Parameters
+    /// * `line`- Line to set. Option.
+    /// * `column` - Column to set. Option
+    pub(crate) fn set_position(&mut self, line: Option<usize>, column: Option<usize>) {
+        self.line = line;
+        self.column = column;
+    }
 }
 
 /// Implement JsonValue::from(node: &FileReference)
