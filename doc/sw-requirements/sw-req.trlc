@@ -104,7 +104,7 @@ section "lobster-rust" {
             }
 
             SwReq traceable_node_output {
-                desciption = "The software shall convert and write each traceable node gathered while parsing as a data item into the output."
+                description = "The software shall convert and write each traceable node gathered while parsing as a data item into the output."
                 verification_proposal = "Unit test"
             }
 
