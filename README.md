@@ -7,7 +7,16 @@ Rust tool to process Rust projects for BMWs [lobster](https://github.com/bmw-sof
 
 This tool processes Rust source code with lobster annotations / tracing tags into the lobster common interchange format.
 
-lobster-rust is currently in development and does not meet the full planned feature set and maturity. To get an overview of the current state and whats to come, check out the documentation and the issues tab.
+lobster-rust is currently in development and does not meet the full planned feature set and maturity.
+
+Currently supported features are:
+* Extraction of tracing tags in Rust source code.
+* Output in the lobster common interchange format.
+
+Currently NOT supported is:
+* Special parsing of test code.
+
+To get an overview of what is currently worked on, check out the issues tab.
 
 * [Used Libraries](#used-libraries)
 * [Documentation](#documentation)
@@ -30,7 +39,7 @@ Used 3rd party libraries which are not part of the standard Rust package:
 ## Installation
 
 To build lobster-rust yourself, you will need to have Rust and Cargo [installed](https://doc.rust-lang.org/cargo/getting-started/installation.html). Clone the repository and build the project using cargo via ```cargo build --release```.
-This will build a lobster-rust executable in the ./target/release/ directory.
+This will build a lobster-rust executable in the ```./target/release/``` directory.
 
 For prebuild releases, see the [Release](https://github.com/NewTec-GmbH/lobster-rust/releases) page of the repository.
 
