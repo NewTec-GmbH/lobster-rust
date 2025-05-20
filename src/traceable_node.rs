@@ -166,8 +166,8 @@ impl RustTraceableNode {
     /// Constructs a new RTN from an IMPL SyntaxNode.
     ///
     /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode of IMPL SyntaxKind.
-    /// The impl node is searched for path nodes, defining which struct is being implemented for,
-    /// and optionally which trait is being implemented.
+    /// The impl node is searched for path nodes and ref nodes, defining which struct is being
+    /// implemented for, and optionally which trait is being implemented.
     /// This information is converted to context data that can be used while parsing enclosed nodes.
     ///
     /// ### Parameters
@@ -176,11 +176,33 @@ impl RustTraceableNode {
     /// ### Returns
     /// Some RustTraceableNode if parsing was sucessful, None otherwise.
     fn from_impl_node(node: &SyntaxNode) -> Option<Self> {
+        /*
+        Impl nodes can take different forms.
+
+        - impl [Path]
+        - impl [Path] for [Path]
+        - impl [Path] for [Ref]
+         */
+
         // Get target (the struct the impl is for) and optional trait that gets implemented.
         let path_nodes = node.get_children_kind(SyntaxKind::PATH_TYPE);
+        let ref_nodes = node.get_children_kind(SyntaxKind::REF_TYPE);
 
-        // Either impl STRUCTNAME or impl TRAITNAME for STRUCTNAME.
-        if path_nodes.len() == 2 {
+        // Case: impl [Path]
+        if path_nodes.len() == 1 && ref_nodes.len() == 0 {
+            // Parse to context data.
+            let structref = path_nodes[0].text().to_string();
+            let impl_data = ContextData::new(Context::from_str(&structref), None);
+            let mut new_node = RustTraceableNode::new(
+                "Impl".to_string(),
+                FileReference::new_default(),
+                NodeKind::Context,
+            );
+            new_node.context_data = Some(impl_data);
+            Some(new_node)
+        }
+        // Case: impl [Path] for [Path]
+        else if path_nodes.len() == 2 && ref_nodes.len() == 0 {
             // Expect the for kw to be present when a trait is implemented (2 path nodes).
             let for_kw = node.get_tokens_kind(SyntaxKind::FOR_KW);
             if for_kw.is_empty() {
@@ -198,20 +220,23 @@ impl RustTraceableNode {
                 new_node.context_data = Some(impl_data);
                 Some(new_node)
             }
-        } else if path_nodes.len() == 1 {
-            // Parse to context data.
-            let structref = path_nodes[0].text().to_string();
-            let impl_data = ContextData::new(Context::from_str(&structref), None);
+        }
+        // Case: impl [Path] for [Ref]
+        else if path_nodes.len() == 1 && ref_nodes.len() == 1 {
+            let traitref = path_nodes[0].text().to_string();
+            let structref = ref_nodes[0].text().to_string();
+            let impl_data = ContextData::new(Context::from_str(&structref), Some(traitref));
             let mut new_node = RustTraceableNode::new(
-                "Impl".to_string(),
-                FileReference::new_default(),
-                NodeKind::Context,
-            );
-            new_node.context_data = Some(impl_data);
-            Some(new_node)
-        } else {
-            // No path nodes or 3+, fail parsing.
-            println!("WARNING: Malformed impl node. Continuing...");
+                    "Impl".to_string(),
+                    FileReference::new_default(),
+                    NodeKind::Context,
+                );
+                new_node.context_data = Some(impl_data);
+                Some(new_node)
+        }
+        else {
+            // No matching pattern.
+            println!("WARNING: Non parsable impl node. Continuing...");
             None
         }
     }
