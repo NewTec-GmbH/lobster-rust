@@ -30,7 +30,7 @@
 //! RustTraceableNode to hold information from parsing the syntax tree and auxiliary structs and
 //! fuctions.
 
-use json::{object::Object, JsonValue};
+use serde_json;
 use ra_ap_syntax::{SyntaxKind, SyntaxNode};
 use std::fmt::Display;
 
@@ -278,21 +278,21 @@ impl RustTraceableNode {
     /// Converst to lobster format and adds itselfs to the items.
     ///
     /// Converts the RustTraceableNode to the lobster common interchange format.
-    /// This is either done by converting the node itself (done via the JsonValue::From
+    /// This is either done by converting the node itself (done via the serde_json::Value::From
     /// implementation), or by converting and adding all of the nodes children, depending on
     /// node kind.
     ///
     /// ### Returns
-    /// Vector of JsonValues, containing either its own representation and/or the childs
+    /// Vector of serde_json::Values, containing either its own representation and/or the childs
     /// representations.
-    pub(crate) fn to_lobster(&self) -> Vec<JsonValue> {
+    pub(crate) fn to_lobster(&self) -> Vec<serde_json::Value> {
         match self.kind {
             NodeKind::Source => self.children.iter().flat_map(|c| c.to_lobster()).collect(),
             NodeKind::Function => {
-                vec![JsonValue::from(self)]
+                vec![serde_json::Value::from(self)]
             }
             NodeKind::Struct => {
-                vec![JsonValue::from(self)]
+                vec![serde_json::Value::from(self)]
             }
             NodeKind::Context => self.children.iter().flat_map(|c| c.to_lobster()).collect(),
             _ => vec![],
@@ -314,51 +314,42 @@ impl Display for RustTraceableNode {
     }
 }
 
-/// Implement JsonValue::from(node: &RustTraceableNode)
+/// Implement serde_json::Value::from(node: &RustTraceableNode)
 ///
-/// This allows conversion from a RTN to a JsonValue.
-impl From<&RustTraceableNode> for JsonValue {
-    /// Convert RTN to a JsonValue.
+/// This allows conversion from a RTN to a serde_json::Value.
+impl From<&RustTraceableNode> for serde_json::Value {
+    /// Convert RTN to a serde_json::Value.
     ///
-    /// Parse a JsonValue from a RustTraceableNode.
+    /// Parse a serde_json::Value from a RustTraceableNode.
     /// This conversion returns json in the form of a data item in the lobster common interchange
     /// format. The relevant fields of the RTN are parsed to the corresponding json fields.
     /// Fields in the interchange format without any relevance are added with no data (or as empty
     /// lists.)
     ///
     /// ### Parameters
-    /// * `node` - RustTraceableNode to convert to JsonValue.
+    /// * `node` - RustTraceableNode to convert to serde_json::Value.
     ///
     /// ### Returns Json object holding the RTN data in lobser common interchange format.
-    fn from(node: &RustTraceableNode) -> JsonValue {
+    fn from(node: &RustTraceableNode) -> serde_json::Value {
         // idk if we really want to do this
-        let mut json_out = JsonValue::Object(Object::new());
-        let _ = json_out.insert("tag", format!("rust {}", node.name));
-        let _ = json_out.insert("name", node.name.to_string());
-        let _ = json_out.insert("location", JsonValue::from(&node.location));
-        let _ = json_out.insert("messages", JsonValue::Array(Vec::new()));
-        let _ = json_out.insert(
-            "just_up",
-            JsonValue::Array(
-                node.just
+        let json_out = serde_json::json!({
+            "tag": format!("rust {}", node.name),
+            "name": node.name.to_string(),
+            "location": serde_json::Value::from(&node.location),
+            "messages": serde_json::Value::Array(Vec::new()),
+            "just_up": serde_json::Value::Array(node.just
                     .iter()
-                    .map(|j| JsonValue::String(j.to_string()))
-                    .collect(),
-            ),
-        );
-        let _ = json_out.insert("just_down", JsonValue::Array(Vec::new()));
-        let _ = json_out.insert("just_global", JsonValue::Array(Vec::new()));
-        let _ = json_out.insert(
-            "refs",
-            JsonValue::Array(
-                node.refs
+                    .map(|j| serde_json::Value::String(j.to_string()))
+                    .collect()),
+            "just_down": serde_json::Value::Array(Vec::new()),
+            "just_global": serde_json::Value::Array(Vec::new()),
+            "refs": serde_json::Value::Array(node.refs
                     .iter()
-                    .map(|r| JsonValue::String(r.to_string()))
-                    .collect(),
-            ),
-        );
-        let _ = json_out.insert("language", "Rust");
-        let _ = json_out.insert("kind", node.kind.to_str());
+                    .map(|r| serde_json::Value::String(r.to_string()))
+                    .collect()),
+            "language": "Rust",
+            "kind": node.kind.to_str()
+        });
         json_out
     }
 }
