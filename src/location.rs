@@ -29,7 +29,7 @@
 
 //! FileReference and GithubReference to track file source and posiiton in files.
 
-use json::{object::Object, JsonValue};
+use serde_json;
 use std::fmt::Display;
 
 /// Struct to define the location of an item in a file.
@@ -88,28 +88,29 @@ impl FileReference {
     }
 }
 
-/// Implement JsonValue::from(node: &FileReference)
+/// Implement serde_json::Value::from(node: &FileReference)
 ///
-/// This is needed in the conversion from a RustTraceableNode to a JsonValue.
-impl From<&FileReference> for JsonValue {
-    /// Convert a FileReference to a JsonValue.
+/// This is needed in the conversion from a RustTraceableNode to a serde_json Value.
+impl From<&FileReference> for serde_json::Value {
+    /// Convert a FileReference to a serde_json::Value.
     ///
-    /// Parse a JsonValue from a FileReference.
+    /// Parse a Value from a FileReference.
     /// This conversion returns json in the form of a location object in the lobster common
     /// interchange format. This conversion is needed when converting a RustTraceableNode to
     /// lobster, as the node will contain a FileReference. The relevant fields of the location
     /// are parsed to the corresponding json fields.
     ///
     /// ### Parameters
-    /// * `reference` - FileReference to convert to JsonValue.
+    /// * `reference` - FileReference to convert to serde_json::Value.
     ///
     /// ### Returns Json object holding the location data in lobser common interchange format.
     fn from(reference: &FileReference) -> Self {
-        let mut location_json = JsonValue::Object(Object::new());
-        let _ = location_json.insert("kind", "file");
-        let _ = location_json.insert("file", reference.filename.clone());
-        let _ = location_json.insert("line", reference.line);
-        let _ = location_json.insert("column", reference.column);
+        let location_json = serde_json::json!({
+            "kind": "file",
+            "file": reference.filename.clone(),
+            "line": reference.line,
+            "column": reference.column
+        });
         location_json
     }
 }

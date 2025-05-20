@@ -30,9 +30,9 @@
 //! lobster-rust tool to prodce lobster common interchange format from a rust project.
 
 use clap::Parser;
-use json::{object::Object, JsonValue};
+use serde_json;
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufWriter, Write};
 use std::path::Path;
 use utils::context::Context;
 use visitor::RustVisitor;
@@ -69,14 +69,15 @@ fn main() {
     let modules = visitor.get_traceable_nodes();
 
     // Convert parsed modules to lobster common interchange format.
-    let data: Vec<JsonValue> = modules.iter().flat_map(|m| m.to_lobster()).collect();
+    let data: Vec<serde_json::Value> = modules.iter().flat_map(|m| m.to_lobster()).collect();
 
     // Combine parsed data and fixed information to full lobster common interchange format output.
-    let mut jout = JsonValue::Object(Object::new());
-    let _ = jout.insert("data", data);
-    let _ = jout.insert("generator", "lobster-rust");
-    let _ = jout.insert("schema", "lobster-imp-trace");
-    let _ = jout.insert("version", 3);
+    let jout = serde_json::json!({
+        "data": data,
+        "generator": "lobster-rust",
+        "schema": "lobster-imp-trace",
+        "version": 3
+    });
 
     // Write lobster common interchange format to output file.
     let outfile: &Path = Path::new(&args.out);
@@ -85,7 +86,9 @@ fn main() {
         Err(e) => panic!("Outfile: {:#?}\n{}", &outfile, e),
         Ok(outfile) => {
             let mut outwriter = BufWriter::new(outfile);
-            let _ = jout.write_pretty(&mut outwriter, 4);
+            if let Ok(outbuffer) = serde_json::to_string_pretty(&jout) {
+                let _ = outwriter.write(outbuffer.as_bytes());
+            }
         }
     }
 }
