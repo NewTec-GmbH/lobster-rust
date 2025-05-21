@@ -34,7 +34,8 @@ use json::{object::Object, JsonValue};
 use ra_ap_syntax::{SyntaxKind, SyntaxNode};
 use std::fmt::Display;
 
-use crate::{location::FileReference, syntax_extensions::Searchable, utils::context::Context};
+use crate::{location::FileReference, syntax_extensions::Searchable,
+     utils::context::Context, utils::trait_type_extraction::extract_type_from_trait};
 
 /// Enum to define the different kinds of RustTraceableNodes.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -119,19 +120,38 @@ impl RustTraceableNode {
     ///
     /// ### Parameters
     /// * `node` - SyntaxNode that should be parsed to a corresponding RTN.
-    /// * `prefix` - Prefix String to prepend to name and tag.
+    /// * `context_data` - ContextData with context and optional trait to prepend to name and tag.
     ///
     /// ### Returns
     /// Some RustTraceableNode if parsing was sucessful, None otherwise.
-    pub(crate) fn from_node(node: &SyntaxNode, prefix: String) -> Option<Self> {
+    pub(crate) fn from_node(node: &SyntaxNode, context_data: Option<ContextData>) -> Option<Self> {
         let location = FileReference::new_default();
+
+        // Extract relevant information from the context data.
+        let prefix;
+        let trait_info;
+        if let Some(cd) = context_data {
+            prefix = cd.context.to_str();
+            trait_info = cd.trait_imp;
+        } else {
+            prefix = "".to_string();
+            trait_info = None;
+        }
+
+        // Add a postfix to functions if trait information containing a type was parsed.
+        let mut trait_postfix = String::new();
+        if let Some(traitstr) = trait_info {
+            if let Some(matched_trait) = extract_type_from_trait(&traitstr) {
+                trait_postfix = matched_trait;
+            }
+        } 
 
         // Node handling is dependent on SyntaxKind of the SyntaxNode.
         if let Some(node_kind) = syntax_kind_to_node_kind(node.kind()) {
             match node_kind {
                 NodeKind::Function => {
                     let name_node = node.get_child_kind(SyntaxKind::NAME)?;
-                    let name = prefix + "." + &name_node.text().to_string();
+                    let name = prefix + "." + &name_node.text().to_string() + &trait_postfix;
                     Some(RustTraceableNode::new(name, location, node_kind))
                 }
                 NodeKind::Source => Some(RustTraceableNode::new(
@@ -166,8 +186,8 @@ impl RustTraceableNode {
     /// Constructs a new RTN from an IMPL SyntaxNode.
     ///
     /// Constructs a new RustTraceableNode from a given ra_ap_syntax SyntaxNode of IMPL SyntaxKind.
-    /// The impl node is searched for path nodes, defining which struct is being implemented for,
-    /// and optionally which trait is being implemented.
+    /// The impl node is searched for path nodes and ref nodes, defining which struct is being
+    /// implemented for, and optionally which trait is being implemented.
     /// This information is converted to context data that can be used while parsing enclosed nodes.
     ///
     /// ### Parameters
@@ -176,29 +196,20 @@ impl RustTraceableNode {
     /// ### Returns
     /// Some RustTraceableNode if parsing was sucessful, None otherwise.
     fn from_impl_node(node: &SyntaxNode) -> Option<Self> {
+        /*
+        Impl nodes can take different forms.
+
+        - impl [Path]
+        - impl [Path] for [Path]
+        - impl [Path] for [Ref]
+         */
+
         // Get target (the struct the impl is for) and optional trait that gets implemented.
         let path_nodes = node.get_children_kind(SyntaxKind::PATH_TYPE);
+        let ref_nodes = node.get_children_kind(SyntaxKind::REF_TYPE);
 
-        // Either impl STRUCTNAME or impl TRAITNAME for STRUCTNAME.
-        if path_nodes.len() == 2 {
-            // Expect the for kw to be present when a trait is implemented (2 path nodes).
-            let for_kw = node.get_tokens_kind(SyntaxKind::FOR_KW);
-            if for_kw.is_empty() {
-                None
-            } else {
-                // Parse to context data.
-                let traitref = path_nodes[0].text().to_string();
-                let structref = path_nodes[1].text().to_string();
-                let impl_data = ContextData::new(Context::from_str(&structref), Some(traitref));
-                let mut new_node = RustTraceableNode::new(
-                    "Impl".to_string(),
-                    FileReference::new_default(),
-                    NodeKind::Context,
-                );
-                new_node.context_data = Some(impl_data);
-                Some(new_node)
-            }
-        } else if path_nodes.len() == 1 {
+        // Case: impl [Path]
+        if path_nodes.len() == 1 && ref_nodes.len() == 0 {
             // Parse to context data.
             let structref = path_nodes[0].text().to_string();
             let impl_data = ContextData::new(Context::from_str(&structref), None);
@@ -209,9 +220,43 @@ impl RustTraceableNode {
             );
             new_node.context_data = Some(impl_data);
             Some(new_node)
-        } else {
-            // No path nodes or 3+, fail parsing.
-            println!("WARNING: Malformed impl node. Continuing...");
+        }
+        // Case: impl [Path] for [Path]
+        else if path_nodes.len() == 2 && ref_nodes.len() == 0 {
+            // Expect the for kw to be present when a trait is implemented (2 path nodes).
+            let for_kw = node.get_tokens_kind(SyntaxKind::FOR_KW);
+            if for_kw.is_empty() {
+                None
+            } else {
+                // Parse to context data.
+                let traitpath = path_nodes[0].text().to_string();
+                let structpath = path_nodes[1].text().to_string();
+                let context_data = ContextData::new(Context::from_str(&structpath), Some(traitpath));
+                let mut new_node = RustTraceableNode::new(
+                    "Impl".to_string(),
+                    FileReference::new_default(),
+                    NodeKind::Context,
+                );
+                new_node.context_data = Some(context_data);
+                Some(new_node)
+            }
+        }
+        // Case: impl [Path] for [Ref]
+        else if path_nodes.len() == 1 && ref_nodes.len() == 1 {
+            let traitpath = path_nodes[0].text().to_string();
+            let structref = ref_nodes[0].text().to_string();
+            let context_data = ContextData::new(Context::from_str(&structref), Some(traitpath));
+            let mut new_node = RustTraceableNode::new(
+                    "Impl".to_string(),
+                    FileReference::new_default(),
+                    NodeKind::Context,
+                );
+                new_node.context_data = Some(context_data);
+                Some(new_node)
+        }
+        else {
+            // No matching pattern.
+            println!("WARNING: Non parsable impl node. Continuing...");
             None
         }
     }
@@ -248,16 +293,16 @@ impl RustTraceableNode {
     /// ### Parameters
     /// * `node` - SyntaxNode that should be parsed to a corresponding RTN.
     /// * `location` - FileReference for the new RTN.
-    /// * `prefix` - Prefix String to prepend to name and tag.
+    /// * `context_data` - ContextData with context and optional trait to prepend to name and tag.
     ///
     /// ### Returns
     /// Some RustTraceableNode if parsing was sucessful, None otherwise.
     pub(crate) fn from_node_with_location(
         node: &SyntaxNode,
         location: FileReference,
-        prefix: String,
+        context_data: Option<ContextData>,
     ) -> Option<Self> {
-        if let Some(mut new_node) = Self::from_node(node, prefix) {
+        if let Some(mut new_node) = Self::from_node(node, context_data) {
             new_node.location = location;
             Some(new_node)
         } else {
@@ -331,7 +376,6 @@ impl From<&RustTraceableNode> for JsonValue {
     ///
     /// ### Returns Json object holding the RTN data in lobser common interchange format.
     fn from(node: &RustTraceableNode) -> JsonValue {
-        // idk if we really want to do this
         let mut json_out = JsonValue::Object(Object::new());
         let _ = json_out.insert("tag", format!("rust {}", node.name));
         let _ = json_out.insert("name", node.name.to_string());
@@ -367,7 +411,7 @@ impl From<&RustTraceableNode> for JsonValue {
 #[derive(Debug, Clone)]
 pub(crate) struct ContextData {
     pub(crate) context: Context,
-    pub(crate) _trait_imp: Option<String>,
+    pub(crate) trait_imp: Option<String>,
 }
 
 impl ContextData {
@@ -381,10 +425,10 @@ impl ContextData {
     ///
     /// ### Returns
     /// The newly constructed context data.
-    fn new(context: Context, trait_imp: Option<String>) -> Self {
+    pub(crate) fn new(context: Context, trait_imp: Option<String>) -> Self {
         ContextData {
             context,
-            _trait_imp: trait_imp,
+            trait_imp,
         }
     }
 }

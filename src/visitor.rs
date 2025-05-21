@@ -38,10 +38,8 @@ use std::path::PathBuf;
 use crate::{
     location::FileReference,
     syntax_extensions::{Searchable, Visitable},
-    traceable_node::{NodeKind, RustTraceableNode},
-    utils::context::Context,
-    utils::extract_path_attr::extract_path_attribute,
-    utils::module_resolution::resolve_module_declaration,
+    traceable_node::{ContextData, NodeKind, RustTraceableNode},
+    utils::{context::Context, extract_path_attr::extract_path_attribute, module_resolution::resolve_module_declaration},
 };
 
 /// Visitor trait
@@ -162,7 +160,7 @@ impl RustVisitor {
     /// Combines the Contexts of the context data into one Context.
     ///
     /// ### Returns
-    /// context as a combination of all enclosing Contexts.
+    /// Context as a combination of all enclosing Contexts.
     fn get_enclosing_context(&self) -> Context {
         // Get reference to the implementation data of the latest Impl node.
         let nested_in: Vec<&Context> = self
@@ -178,6 +176,28 @@ impl RustVisitor {
             nested_in.into_iter().sum()
         } else {
             Context::Empty
+        }
+    }
+
+    /// Retreive the most relevant trait data on the stack.
+    /// 
+    /// Traverses the stack to find context nodes that hold trait implementation information.
+    /// Returns the latest trait information on the stack, if any is found.
+    /// 
+    /// ### Returns
+    /// Optional trait information that is on the stack.
+    fn get_enclosing_trait(&self) -> Option<String> {
+        let trait_data_on_stack: Vec<&String> = self.vdata
+        .node_stack.iter().filter(|n| NodeKind::Context == n.kind)
+            .filter_map(|rtn| rtn.context_data.as_ref())
+            .filter_map(|context_data| context_data.trait_imp.as_ref())
+            .collect();
+
+        if let Some(last_trait) = trait_data_on_stack.last() {
+            println!("Got trait: {:#?}", last_trait);
+            Some((*last_trait).clone())
+        } else {
+            None
         }
     }
 
@@ -250,7 +270,7 @@ impl RustVisitor {
     /// ### Parameters
     /// * `source_node` - SyntaxNode of kind SOURCE. Top level node of a source file.
     fn enter_source(&mut self, source_node: &SyntaxNode) {
-        let mut root_node = RustTraceableNode::from_node(source_node, String::new()).unwrap();
+        let mut root_node = RustTraceableNode::from_node(source_node, None).unwrap();
         root_node.name = self.get_filename();
         self.vdata.node_stack.push(root_node);
     }
@@ -271,10 +291,13 @@ impl RustVisitor {
 
         // Check for enclosing context.
         let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
+        let trait_info: Option<String> = self.get_enclosing_trait();
+
+        let context_data = ContextData::new(context, trait_info);
 
         // Parse node.
         if let Some(node) =
-            RustTraceableNode::from_node_with_location(fn_node, location, context.to_str())
+            RustTraceableNode::from_node_with_location(fn_node, location, Some(context_data))
         {
             self.vdata.node_stack.push(node);
         }
@@ -314,10 +337,11 @@ impl RustVisitor {
 
         // Check for enclosing context.
         let context = &self.default_context + self.get_filename() + self.get_enclosing_context();
+        let context_data = ContextData::new(context, None);
 
         // Parse node.
         if let Some(node) =
-            RustTraceableNode::from_node_with_location(struct_node, location, context.to_str())
+            RustTraceableNode::from_node_with_location(struct_node, location, Some(context_data))
         {
             self.vdata.node_stack.push(node);
         }
@@ -348,7 +372,7 @@ impl RustVisitor {
     /// ### Parameters
     /// * `impl_node` - SyntaxNode of kind IMPL.
     fn enter_impl(&mut self, impl_node: &SyntaxNode) {
-        let node = RustTraceableNode::from_node(impl_node, String::new()).unwrap();
+        let node = RustTraceableNode::from_node(impl_node, None).unwrap();
         self.vdata.node_stack.push(node);
     }
 
@@ -410,7 +434,7 @@ impl RustVisitor {
                 if n.kind() == SyntaxKind::ITEM_LIST {
                     // Found local module. Parse as Context.
                     let context_node =
-                        RustTraceableNode::from_node(mod_node, String::new()).unwrap();
+                        RustTraceableNode::from_node(mod_node, None).unwrap();
                     self.vdata.node_stack.push(context_node);
                 }
             }
@@ -445,7 +469,7 @@ impl RustVisitor {
     /// * `trait_node` - SyntaxNode of kind Trait.
     fn enter_trait(&mut self, trait_node: &SyntaxNode) {
         // The node information is not needed for the output, only for context while parsing.
-        let traceable_trait_node = RustTraceableNode::from_node(trait_node, String::new()).unwrap();
+        let traceable_trait_node = RustTraceableNode::from_node(trait_node, None).unwrap();
         self.vdata.node_stack.push(traceable_trait_node);
     }
 

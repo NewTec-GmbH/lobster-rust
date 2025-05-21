@@ -27,11 +27,20 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-//! # Utils
-//!
-//! Collection of different utility functions.
+//! Utility function to extract the type from a trait specification string.
 
-pub(crate) mod context;
-pub(crate) mod extract_path_attr;
-pub(crate) mod module_resolution;
-pub(crate) mod trait_type_extraction;
+use regex::Regex;
+
+pub(crate) fn extract_type_from_trait(trait_str: &String) -> Option<String> {
+    // Extract a possible type that is specified in angle brackets at the end of the trait.
+    // Allow matching of references (&) and lifetimes (') in the angle brackets.
+    let type_re = Regex::new(r".*(?<type><[[:alnum:]\._\-&'\s]+>)").unwrap();
+    
+    if let Some(cap) = type_re.captures(trait_str) {
+        if let Some(typematch) = cap.name("type") {
+            let typestring = typematch.as_str().to_string();
+            return Some(typestring);
+        }
+    }
+    None
+}
